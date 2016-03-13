@@ -1,0 +1,239 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Dipy &mdash; dipy 0.11.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/dipy.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.11.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="dipy 0.11.0 documentation" href="index.html" />
+  <meta name="keywords" content="dipy, dMRI, DTI, DSI, diffusion MRI, Tensor,
+  neuroimaging, python, neuroscience, Eleftherios, Garyfallidis, tractography,
+  streamlines, fiber tracking">
+
+  </head>
+  <body>
+<div style="background-color: white; text-align: left; padding: 10px 10px 15px 15px">
+ <a href="index.html">
+  <img src="_static/dipy-banner.png" alt="dipy logo"  border="0" />
+</div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+  <li><a href="index.html">Home</a> |&nbsp;</li>
+  <li><a href="stateoftheart.html">Overview</a> |&nbsp;</li>
+  <li><a href="examples_index.html">Gallery</a> |&nbsp;</li>
+  <li><a href="installation.html">Download</a> |&nbsp;</li>
+  <li><a href="subscribe.html">Subscribe</a> |&nbsp;</li>
+  <li><a href="developers.html">Developers</a> |&nbsp;</li>
+  <li><a href="cite.html">Cite</a> &nbsp;</li>
+ 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+
+
+<h4> Site Navigation </h4>
+  <ul>
+    <li><a href="documentation.html">Documentation</a></li>
+    <li><a href="devel/index.html">Development</a></li>
+  </ul>
+
+<h4> NIPY Community </h4>
+  <ul class="simple">
+    <li><a class="reference external"
+	href="http://nipy.org/">Community Home</a></li>
+    <li><a class="reference external"
+	href="http://nipy.org/software/projects/">NIPY Projects</a></li>
+    <li><a class="reference external"
+	href="https://mail.python.org/mailman/listinfo/neuroimaging">Mailing List</a></li>
+    <li><a class="reference external"
+	href="http://nipy.org/nipy/license.html">License</a></li>
+  </ul>
+
+
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/glossary.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+
+<div id="searchbox-ml" style="display: none">
+  <h3>Search mailing list archive</h3>
+  <script type="text/javascript">
+    function mlsearch(curobj)
+    {
+    curobj.q.value="site:mail.python.org/pipermail/neuroimaging/ "+curobj.userquery.value
+    }
+  </script>
+  <form action="http://www.google.com/search" method="get" onSubmit="mlsearch(this)">
+    <input name="userquery" size="13" type="text" /> <input type="submit" value="Go" />
+    <input name="q" type="hidden" />
+  </form>
+</div>
+
+<div id="searchbox-site" style="display: none">
+  <h3>Search this site</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="13" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox-ml').show(0);</script>
+<script type="text/javascript">$('#searchbox-site').show(0);</script>
+
+
+<script>
+     ((window.gitter = {}).chat = {}).options = {
+       room: 'nipy/dipy'
+     };
+</script>
+<script src="https://sidecar.gitter.im/dist/sidecar.v1.js" async defer></script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="glossary">
+<h1>Glossary<a class="headerlink" href="#glossary" title="Permalink to this headline">¶</a></h1>
+<dl class="glossary docutils">
+<dt id="term-affine-matrix">Affine matrix</dt>
+<dd>A matrix implementing an <a class="reference internal" href="#term-affine-transformation"><em class="xref std std-term">affine transformation</em></a> in
+<a class="reference internal" href="#term-homogenous-coordinates"><em class="xref std std-term">homogenous coordinates</em></a>.  For a 3 dimensional transform, the
+matrix is shape 4 by 4.</dd>
+<dt id="term-affine-transformation">Affine transformation</dt>
+<dd>See <a class="reference external" href="http://en.wikipedia.org/wiki/Affine_transformation">wikipedia affine</a> definition.  An affine transformation is a
+<a class="reference internal" href="#term-linear-transformation"><em class="xref std std-term">linear transformation</em></a> followed by a translation.</dd>
+<dt id="term-axis-angle">Axis angle</dt>
+<dd>A representation of rotation.  See: <a class="reference external" href="http://en.wikipedia.org/wiki/Axis_angle">wikipedia axis angle</a> .
+From Euler&#8217;s rotation theorem we know that any rotation or
+sequence of rotations can be represented by a single rotation
+about an axis.  The axis <img class="math" src="_images/math/d365c0b136d7b5f3d11adbd4839459b14a4efe7d.png" alt="\boldsymbol{\hat{u}}"/> is a <a class="reference internal" href="#term-unit-vector"><em class="xref std std-term">unit
+vector</em></a>.  The angle is <img class="math" src="_images/math/a9cfbeb8ebee1f365919e147a79e242dcb67ee5d.png" alt="\theta"/>.  The <a class="reference internal" href="#term-rotation-vector"><em class="xref std std-term">rotation vector</em></a> is a
+more compact representation of <img class="math" src="_images/math/a9cfbeb8ebee1f365919e147a79e242dcb67ee5d.png" alt="\theta"/> and
+<img class="math" src="_images/math/d365c0b136d7b5f3d11adbd4839459b14a4efe7d.png" alt="\boldsymbol{\hat{u}}"/>.</dd>
+<dt id="term-euclidean-norm">Euclidean norm</dt>
+<dd><p class="first">Also called Euclidean length, or L2 norm.  The Euclidean norm
+<img class="math" src="_images/math/448e2cdf65b19585551dd9c103e2eff5b1d982db.png" alt="\|\mathbf{x}\|"/> of a vector <img class="math" src="_images/math/46aec6aaff80d183cc0ed35d77ce75c7c9ffd174.png" alt="\mathbf{x}"/> is given by:</p>
+<div class="math">
+<p><img src="_images/math/012d7428bca4960b356cea08455f2156abbe543e.png" alt="\|\mathbf{x}\| := \sqrt{x_1^2 + \cdots + x_n^2}"/></p>
+</div><p class="last">Pure Pythagoras.</p>
+</dd>
+<dt id="term-euler-angles">Euler angles</dt>
+<dd>See: <a class="reference external" href="http://en.wikipedia.org/wiki/Euler_angles">wikipedia Euler angles</a> and <a class="reference external" href="http://mathworld.wolfram.com/EulerAngles.html">Mathworld Euler angles</a>.</dd>
+<dt id="term-gimbal-lock">Gimbal lock</dt>
+<dd>See <a class="reference internal" href="gimbal_lock.html#gimbal-lock"><em>Gimbal lock</em></a></dd>
+<dt id="term-homogenous-coordinates">Homogenous coordinates</dt>
+<dd>See <a class="reference external" href="http://en.wikipedia.org/wiki/Homogeneous_coordinates">wikipedia homogenous coordinates</a></dd>
+<dt id="term-linear-transformation">Linear transformation</dt>
+<dd>A linear transformation is one that preserves lines - that is, if
+any three points are on a line before transformation, they are
+also on a line after transformation.  See <a class="reference external" href="http://en.wikipedia.org/wiki/Linear_transformation">wikipedia linear
+transform</a>.  Rotation, scaling and shear are linear
+transformations.</dd>
+<dt id="term-quaternion">Quaternion</dt>
+<dd>See: <a class="reference external" href="http://en.wikipedia.org/wiki/Quaternion">wikipedia quaternion</a>.  An extension of the complex numbers
+that can represent a rotation.  Quaternions have 4 values, <img class="math" src="_images/math/a1db1aa24e00db9d53dc5e36c6d6ecc5311cd4df.png" alt="w, x,
+y, z"/>.  <img class="math" src="_images/math/8659700e6646cd91bc02c32affaa5ec046ee9935.png" alt="w"/> is the <em>real</em> part of the quaternion and the vector
+<img class="math" src="_images/math/c1b23a948874b1b4d107d85853c930be928e60e2.png" alt="x, y, z"/> is the <em>vector</em> part of the quaternion.  Quaternions are
+less intuitive to visualize than <a class="reference internal" href="#term-euler-angles"><em class="xref std std-term">Euler angles</em></a> but do not
+suffer from <a class="reference internal" href="#term-gimbal-lock"><em class="xref std std-term">gimbal lock</em></a> and are often used for rapid
+interpolation of rotations.</dd>
+<dt id="term-reflection">Reflection</dt>
+<dd>A transformation that can be thought of as transforming an object
+to its mirror image.  The mirror in the transformation is a plane.
+A plan can be defined with a point and a vector normal to the
+plane.  See <a class="reference external" href="http://en.wikipedia.org/wiki/Reflection_(mathematics)">wikipedia reflection</a>.</dd>
+<dt id="term-rotation-matrix">Rotation matrix</dt>
+<dd>See <a class="reference external" href="http://en.wikipedia.org/wiki/Rotation_matrix">wikipedia rotation matrix</a>.  A rotation matrix is a matrix
+implementing a rotation.  Rotation matrices are square and
+orthogonal.  That means, that the rotation matrix <img class="math" src="_images/math/9d86170e7de539c0ff999de09621ee0c7b6c8ed0.png" alt="R"/> has columns
+and rows that are <a class="reference internal" href="#term-unit-vector"><em class="xref std std-term">unit vector</em></a>, and where <img class="math" src="_images/math/8369304c9394d1040b90c732b7944546c3444c41.png" alt="R^T R = I"/> (<img class="math" src="_images/math/6f719d11a63dd203e90a60c3c567d8a8f47a4fe0.png" alt="R^T"/> is
+the transpose and <img class="math" src="_images/math/5d9e7b2aec3287330051a115f2ea3cdc8c7a6587.png" alt="I"/> is the identity matrix).  Therefore <img class="math" src="_images/math/8303c6fcd4be37181eff84c2cc96e08eff422c4f.png" alt="R^T =
+R^{-1}"/> (<img class="math" src="_images/math/1760677be341a62499acad8ce9187cdeecae064b.png" alt="R^{-1}"/> is the inverse).  Rotation matrices also have a
+determinant of <img class="math" src="_images/math/123e375e88da91240024aaf085abee194c4a2d06.png" alt="1"/>.</dd>
+<dt id="term-rotation-vector">Rotation vector</dt>
+<dd><p class="first">A representation of an <a class="reference internal" href="#term-axis-angle"><em class="xref std std-term">axis angle</em></a> rotation. The angle
+<img class="math" src="_images/math/a9cfbeb8ebee1f365919e147a79e242dcb67ee5d.png" alt="\theta"/> and unit vector axis <img class="math" src="_images/math/d365c0b136d7b5f3d11adbd4839459b14a4efe7d.png" alt="\boldsymbol{\hat{u}}"/> are stored in a
+<em>rotation vector</em> <img class="math" src="_images/math/6fd0430aec41134fb564d65e415312f366a1cf53.png" alt="\boldsymbol{u}"/>, such that:</p>
+<div class="math">
+<p><img src="_images/math/27afc80925802f45d61782c8007daae65127c5fb.png" alt="\theta =  \|\boldsymbol{u}\| \,
+
+\boldsymbol{\hat{u}} = \frac{\boldsymbol{u}}{\|\boldsymbol{u}\|}"/></p>
+</div><p class="last">where <img class="math" src="_images/math/8bbd62c152100708810d697a56c941723f4b86c3.png" alt="\|\boldsymbol{u}\|"/> is the <a class="reference internal" href="#term-euclidean-norm"><em class="xref std std-term">Euclidean norm</em></a> of
+<img class="math" src="_images/math/6fd0430aec41134fb564d65e415312f366a1cf53.png" alt="\boldsymbol{u}"/></p>
+</dd>
+<dt id="term-shear-matrix">Shear matrix</dt>
+<dd>Square matrix that results in shearing transforms - see
+<a class="reference external" href="http://en.wikipedia.org/wiki/Shear_matrix">wikipedia shear matrix</a>.</dd>
+<dt id="term-unit-vector">Unit vector</dt>
+<dd>A vector <img class="math" src="_images/math/d365c0b136d7b5f3d11adbd4839459b14a4efe7d.png" alt="\boldsymbol{\hat{u}}"/> with a <a class="reference internal" href="#term-euclidean-norm"><em class="xref std std-term">Euclidean norm</em></a>
+of 1.  Normalized vector is a synonym.  The &#8220;hat&#8221; over the
+<img class="math" src="_images/math/d365c0b136d7b5f3d11adbd4839459b14a4efe7d.png" alt="\boldsymbol{\hat{u}}"/> is a convention to express the fact that it
+is a unit vector.</dd>
+</dl>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+  <li><a href="index.html">Home</a> |&nbsp;</li>
+  <li><a href="stateoftheart.html">Overview</a> |&nbsp;</li>
+  <li><a href="examples_index.html">Gallery</a> |&nbsp;</li>
+  <li><a href="installation.html">Download</a> |&nbsp;</li>
+  <li><a href="subscribe.html">Subscribe</a> |&nbsp;</li>
+  <li><a href="developers.html">Developers</a> |&nbsp;</li>
+  <li><a href="cite.html">Cite</a> &nbsp;</li>
+ 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2015, dipy developers &lt;neuroimaging@python.org&gt;.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

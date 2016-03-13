@@ -1,0 +1,867 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Dipy &mdash; dipy 0.11.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/dipy.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.11.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="dipy 0.11.0 documentation" href="../index.html" />
+    <link rel="up" title="API Reference" href="index.html" />
+  <meta name="keywords" content="dipy, dMRI, DTI, DSI, diffusion MRI, Tensor,
+  neuroimaging, python, neuroscience, Eleftherios, Garyfallidis, tractography,
+  streamlines, fiber tracking">
+
+  </head>
+  <body>
+<div style="background-color: white; text-align: left; padding: 10px 10px 15px 15px">
+ <a href="../index.html">
+  <img src="../_static/dipy-banner.png" alt="dipy logo"  border="0" />
+</div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+  <li><a href="../index.html">Home</a> |&nbsp;</li>
+  <li><a href="../stateoftheart.html">Overview</a> |&nbsp;</li>
+  <li><a href="../examples_index.html">Gallery</a> |&nbsp;</li>
+  <li><a href="../installation.html">Download</a> |&nbsp;</li>
+  <li><a href="../subscribe.html">Subscribe</a> |&nbsp;</li>
+  <li><a href="../developers.html">Developers</a> |&nbsp;</li>
+  <li><a href="../cite.html">Cite</a> &nbsp;</li>
+
+          <li><a href="../documentation.html" >Documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">API Reference</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+
+
+<h4> Site Navigation </h4>
+  <ul>
+    <li><a href="../documentation.html">Documentation</a></li>
+    <li><a href="../devel/index.html">Development</a></li>
+  </ul>
+
+<h4> NIPY Community </h4>
+  <ul class="simple">
+    <li><a class="reference external"
+	href="http://nipy.org/">Community Home</a></li>
+    <li><a class="reference external"
+	href="http://nipy.org/software/projects/">NIPY Projects</a></li>
+    <li><a class="reference external"
+	href="https://mail.python.org/mailman/listinfo/neuroimaging">Mailing List</a></li>
+    <li><a class="reference external"
+	href="http://nipy.org/nipy/license.html">License</a></li>
+  </ul>
+
+
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#"><tt class="docutils literal"><span class="pre">workflows</span></tt></a><ul>
+<li><a class="reference internal" href="#module-dipy.workflows.base">Module: <tt class="docutils literal"><span class="pre">workflows.base</span></tt></a></li>
+<li><a class="reference internal" href="#module-dipy.workflows.docstring_parser">Module: <tt class="docutils literal"><span class="pre">workflows.docstring_parser</span></tt></a></li>
+<li><a class="reference internal" href="#module-dipy.workflows.reconst">Module: <tt class="docutils literal"><span class="pre">workflows.reconst</span></tt></a></li>
+<li><a class="reference internal" href="#module-dipy.workflows.segment">Module: <tt class="docutils literal"><span class="pre">workflows.segment</span></tt></a></li>
+<li><a class="reference internal" href="#module-dipy.workflows.tracking">Module: <tt class="docutils literal"><span class="pre">workflows.tracking</span></tt></a><ul>
+<li><a class="reference internal" href="#introspectiveargumentparser"><tt class="docutils literal"><span class="pre">IntrospectiveArgumentParser</span></tt></a></li>
+<li><a class="reference internal" href="#numpydocstring"><tt class="docutils literal"><span class="pre">NumpyDocString</span></tt></a></li>
+<li><a class="reference internal" href="#id3"><tt class="docutils literal"><span class="pre">NumpyDocString</span></tt></a></li>
+<li><a class="reference internal" href="#reader"><tt class="docutils literal"><span class="pre">Reader</span></tt></a></li>
+<li><a class="reference internal" href="#dedent-lines">dedent_lines</a></li>
+<li><a class="reference internal" href="#warn">warn</a></li>
+<li><a class="reference internal" href="#basename">basename</a></li>
+<li><a class="reference internal" href="#choose-create-out-dir">choose_create_out_dir</a></li>
+<li><a class="reference internal" href="#glob">glob</a></li>
+<li><a class="reference internal" href="#join">join</a></li>
+<li><a class="reference internal" href="#median-otsu">median_otsu</a></li>
+<li><a class="reference internal" href="#median-otsu-flow">median_otsu_flow</a></li>
+<li><a class="reference internal" href="#splitext">splitext</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/reference/dipy.workflows.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+
+<div id="searchbox-ml" style="display: none">
+  <h3>Search mailing list archive</h3>
+  <script type="text/javascript">
+    function mlsearch(curobj)
+    {
+    curobj.q.value="site:mail.python.org/pipermail/neuroimaging/ "+curobj.userquery.value
+    }
+  </script>
+  <form action="http://www.google.com/search" method="get" onSubmit="mlsearch(this)">
+    <input name="userquery" size="13" type="text" /> <input type="submit" value="Go" />
+    <input name="q" type="hidden" />
+  </form>
+</div>
+
+<div id="searchbox-site" style="display: none">
+  <h3>Search this site</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" size="13" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox-ml').show(0);</script>
+<script type="text/javascript">$('#searchbox-site').show(0);</script>
+
+
+<script>
+     ((window.gitter = {}).chat = {}).options = {
+       room: 'nipy/dipy'
+     };
+</script>
+<script src="https://sidecar.gitter.im/dist/sidecar.v1.js" async defer></script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-dipy.workflows">
+<span id="workflows"></span><h1><tt class="xref py py-mod docutils literal"><span class="pre">workflows</span></tt><a class="headerlink" href="#module-dipy.workflows" title="Permalink to this headline">¶</a></h1>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+</tbody>
+</table>
+<div class="section" id="module-dipy.workflows.base">
+<span id="module-workflows-base"></span><h2>Module: <tt class="xref py py-mod docutils literal"><span class="pre">workflows.base</span></tt><a class="headerlink" href="#module-dipy.workflows.base" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#dipy.workflows.base.IntrospectiveArgumentParser" title="dipy.workflows.base.IntrospectiveArgumentParser"><tt class="xref py py-obj docutils literal"><span class="pre">IntrospectiveArgumentParser</span></tt></a>([prog,&nbsp;usage,&nbsp;...])</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#dipy.workflows.base.NumpyDocString" title="dipy.workflows.base.NumpyDocString"><tt class="xref py py-obj docutils literal"><span class="pre">NumpyDocString</span></tt></a>(docstring[,&nbsp;config])</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="module-dipy.workflows.docstring_parser">
+<span id="module-workflows-docstring-parser"></span><h2>Module: <tt class="xref py py-mod docutils literal"><span class="pre">workflows.docstring_parser</span></tt><a class="headerlink" href="#module-dipy.workflows.docstring_parser" title="Permalink to this headline">¶</a></h2>
+<p>This was taken directly from the file docscrape.py of numpydoc package.</p>
+<p>Copyright (C) 2008 Stefan van der Walt &lt;<a class="reference external" href="mailto:stefan&#37;&#52;&#48;mentat&#46;za&#46;net">stefan<span>&#64;</span>mentat<span>&#46;</span>za<span>&#46;</span>net</a>&gt;, Pauli Virtanen &lt;<a class="reference external" href="mailto:pav&#37;&#52;&#48;iki&#46;fi">pav<span>&#64;</span>iki<span>&#46;</span>fi</a>&gt;</p>
+<p>Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li>Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.</li>
+<li>Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in
+the documentation and/or other materials provided with the
+distribution.</li>
+</ol>
+</div></blockquote>
+<p>THIS SOFTWARE IS PROVIDED BY THE AUTHOR <a href="#id1"><span class="problematic" id="id2">``</span></a>AS IS&#8217;&#8217; AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#dipy.workflows.docstring_parser.NumpyDocString" title="dipy.workflows.docstring_parser.NumpyDocString"><tt class="xref py py-obj docutils literal"><span class="pre">NumpyDocString</span></tt></a>(docstring[,&nbsp;config])</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#dipy.workflows.docstring_parser.Reader" title="dipy.workflows.docstring_parser.Reader"><tt class="xref py py-obj docutils literal"><span class="pre">Reader</span></tt></a>(data)</td>
+<td>A line-based string reader.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#dipy.workflows.docstring_parser.dedent_lines" title="dipy.workflows.docstring_parser.dedent_lines"><tt class="xref py py-obj docutils literal"><span class="pre">dedent_lines</span></tt></a>(lines)</td>
+<td>Deindent a list of lines maximally</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#dipy.workflows.docstring_parser.warn" title="dipy.workflows.docstring_parser.warn"><tt class="xref py py-obj docutils literal"><span class="pre">warn</span></tt></a></td>
+<td>Issue a warning, or maybe ignore it or raise an exception.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="module-dipy.workflows.reconst">
+<span id="module-workflows-reconst"></span><h2>Module: <tt class="xref py py-mod docutils literal"><span class="pre">workflows.reconst</span></tt><a class="headerlink" href="#module-dipy.workflows.reconst" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+</tbody>
+</table>
+</div>
+<div class="section" id="module-dipy.workflows.segment">
+<span id="module-workflows-segment"></span><h2>Module: <tt class="xref py py-mod docutils literal"><span class="pre">workflows.segment</span></tt><a class="headerlink" href="#module-dipy.workflows.segment" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#dipy.workflows.segment.basename" title="dipy.workflows.segment.basename"><tt class="xref py py-obj docutils literal"><span class="pre">basename</span></tt></a>(p)</td>
+<td>Returns the final component of a pathname</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#dipy.workflows.segment.choose_create_out_dir" title="dipy.workflows.segment.choose_create_out_dir"><tt class="xref py py-obj docutils literal"><span class="pre">choose_create_out_dir</span></tt></a>(out_dir,&nbsp;root_path)</td>
+<td>Analyses the parameters and returns the appropriate output path.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#dipy.workflows.segment.glob" title="dipy.workflows.segment.glob"><tt class="xref py py-obj docutils literal"><span class="pre">glob</span></tt></a>(pathname)</td>
+<td>Return a list of paths matching a pathname pattern.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#dipy.workflows.segment.join" title="dipy.workflows.segment.join"><tt class="xref py py-obj docutils literal"><span class="pre">join</span></tt></a>(a,&nbsp;*p)</td>
+<td>Join two or more pathname components, inserting &#8216;/&#8217; as needed.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#dipy.workflows.segment.median_otsu" title="dipy.workflows.segment.median_otsu"><tt class="xref py py-obj docutils literal"><span class="pre">median_otsu</span></tt></a>(input_volume[,&nbsp;median_radius,&nbsp;...])</td>
+<td>Simple brain extraction tool method for images from DWI data.</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#dipy.workflows.segment.median_otsu_flow" title="dipy.workflows.segment.median_otsu_flow"><tt class="xref py py-obj docutils literal"><span class="pre">median_otsu_flow</span></tt></a>(input_files[,&nbsp;out_dir,&nbsp;...])</td>
+<td>Workflow wrapping the median_otsu segmentation method.</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#dipy.workflows.segment.splitext" title="dipy.workflows.segment.splitext"><tt class="xref py py-obj docutils literal"><span class="pre">splitext</span></tt></a>(p)</td>
+<td>Split the extension from a pathname.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="module-dipy.workflows.tracking">
+<span id="module-workflows-tracking"></span><h2>Module: <tt class="xref py py-mod docutils literal"><span class="pre">workflows.tracking</span></tt><a class="headerlink" href="#module-dipy.workflows.tracking" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+</tbody>
+</table>
+<div class="section" id="introspectiveargumentparser">
+<h3><a class="reference internal" href="#dipy.workflows.base.IntrospectiveArgumentParser" title="dipy.workflows.base.IntrospectiveArgumentParser"><tt class="xref py py-class docutils literal"><span class="pre">IntrospectiveArgumentParser</span></tt></a><a class="headerlink" href="#introspectiveargumentparser" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="dipy.workflows.base.IntrospectiveArgumentParser">
+<em class="property">class </em><tt class="descclassname">dipy.workflows.base.</tt><tt class="descname">IntrospectiveArgumentParser</tt><big>(</big><em>prog=None</em>, <em>usage=None</em>, <em>description=None</em>, <em>epilog=None</em>, <em>version=None</em>, <em>parents=</em>, <span class="optional">[</span><span class="optional">]</span><em>formatter_class=&lt;class 'dipy.fixes.argparse.RawTextHelpFormatter'&gt;</em>, <em>prefix_chars='-'</em>, <em>fromfile_prefix_chars=None</em>, <em>argument_default=None</em>, <em>conflict_handler='resolve'</em>, <em>add_help=True</em><big>)</big><a class="headerlink" href="#dipy.workflows.base.IntrospectiveArgumentParser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">dipy.fixes.argparse.ArgumentParser</span></tt></p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><tt class="xref py py-obj docutils literal"><span class="pre">add_argument</span></tt>(dest,&nbsp;...[,&nbsp;name,&nbsp;name])</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><tt class="xref py py-obj docutils literal"><span class="pre">add_argument_group</span></tt>(*args,&nbsp;**kwargs)</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#dipy.workflows.base.IntrospectiveArgumentParser.add_description" title="dipy.workflows.base.IntrospectiveArgumentParser.add_description"><tt class="xref py py-obj docutils literal"><span class="pre">add_description</span></tt></a>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#dipy.workflows.base.IntrospectiveArgumentParser.add_epilogue" title="dipy.workflows.base.IntrospectiveArgumentParser.add_epilogue"><tt class="xref py py-obj docutils literal"><span class="pre">add_epilogue</span></tt></a>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><tt class="xref py py-obj docutils literal"><span class="pre">add_mutually_exclusive_group</span></tt>(**kwargs)</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><tt class="xref py py-obj docutils literal"><span class="pre">add_subparsers</span></tt>(**kwargs)</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#dipy.workflows.base.IntrospectiveArgumentParser.add_workflow" title="dipy.workflows.base.IntrospectiveArgumentParser.add_workflow"><tt class="xref py py-obj docutils literal"><span class="pre">add_workflow</span></tt></a>(workflow)</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><tt class="xref py py-obj docutils literal"><span class="pre">error</span></tt>(message:&nbsp;string)</td>
+<td>Prints a usage message incorporating the message to stderr and exits.</td>
+</tr>
+<tr class="row-odd"><td><tt class="xref py py-obj docutils literal"><span class="pre">exit</span></tt>([status,&nbsp;message])</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><tt class="xref py py-obj docutils literal"><span class="pre">format_help</span></tt>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><tt class="xref py py-obj docutils literal"><span class="pre">format_usage</span></tt>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><tt class="xref py py-obj docutils literal"><span class="pre">format_version</span></tt>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#dipy.workflows.base.IntrospectiveArgumentParser.get_flow_args" title="dipy.workflows.base.IntrospectiveArgumentParser.get_flow_args"><tt class="xref py py-obj docutils literal"><span class="pre">get_flow_args</span></tt></a>([args,&nbsp;namespace])</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#dipy.workflows.base.IntrospectiveArgumentParser.get_outputs" title="dipy.workflows.base.IntrospectiveArgumentParser.get_outputs"><tt class="xref py py-obj docutils literal"><span class="pre">get_outputs</span></tt></a>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><tt class="xref py py-obj docutils literal"><span class="pre">parse_args</span></tt>([args,&nbsp;namespace])</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><tt class="xref py py-obj docutils literal"><span class="pre">parse_known_args</span></tt>([args,&nbsp;namespace])</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><tt class="xref py py-obj docutils literal"><span class="pre">print_help</span></tt>([file])</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><tt class="xref py py-obj docutils literal"><span class="pre">print_usage</span></tt>([file])</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><tt class="xref py py-obj docutils literal"><span class="pre">print_version</span></tt>([file])</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><tt class="xref py py-obj docutils literal"><span class="pre">register</span></tt>(registry_name,&nbsp;value,&nbsp;object)</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><tt class="xref py py-obj docutils literal"><span class="pre">set_defaults</span></tt>(**kwargs)</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#dipy.workflows.base.IntrospectiveArgumentParser.show_argument" title="dipy.workflows.base.IntrospectiveArgumentParser.show_argument"><tt class="xref py py-obj docutils literal"><span class="pre">show_argument</span></tt></a>(dest)</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#dipy.workflows.base.IntrospectiveArgumentParser.update_argument" title="dipy.workflows.base.IntrospectiveArgumentParser.update_argument"><tt class="xref py py-obj docutils literal"><span class="pre">update_argument</span></tt></a>(*args,&nbsp;**kargs)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="dipy.workflows.base.IntrospectiveArgumentParser.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>prog=None</em>, <em>usage=None</em>, <em>description=None</em>, <em>epilog=None</em>, <em>version=None</em>, <em>parents=</em>, <span class="optional">[</span><span class="optional">]</span><em>formatter_class=&lt;class 'dipy.fixes.argparse.RawTextHelpFormatter'&gt;</em>, <em>prefix_chars='-'</em>, <em>fromfile_prefix_chars=None</em>, <em>argument_default=None</em>, <em>conflict_handler='resolve'</em>, <em>add_help=True</em><big>)</big><a class="headerlink" href="#dipy.workflows.base.IntrospectiveArgumentParser.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Augmenting the argument parser to allow automatic creation of
+arguments from workflows</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>prog</strong> : None</p>
+<blockquote>
+<div><p>The name of the program (default: sys.argv[0])</p>
+</div></blockquote>
+<p><strong>usage</strong> : None</p>
+<blockquote>
+<div><p>A usage message (default: auto-generated from arguments)</p>
+</div></blockquote>
+<p><strong>description</strong> : str</p>
+<blockquote>
+<div><p>A description of what the program does</p>
+</div></blockquote>
+<p><strong>epilog</strong> : str</p>
+<blockquote>
+<div><p>Text following the argument descriptions</p>
+</div></blockquote>
+<p><strong>version</strong> : None</p>
+<blockquote>
+<div><p>Add a -v/&#8211;version option with the given version string</p>
+</div></blockquote>
+<p><strong>parents</strong> : list</p>
+<blockquote>
+<div><p>Parsers whose arguments should be copied into this one</p>
+</div></blockquote>
+<p><strong>formatter_class</strong> : obj</p>
+<blockquote>
+<div><p>HelpFormatter class for printing help messages</p>
+</div></blockquote>
+<p><strong>prefix_chars</strong> : str</p>
+<blockquote>
+<div><p>Characters that prefix optional arguments</p>
+</div></blockquote>
+<p><strong>fromfile_prefix_chars</strong> : None</p>
+<blockquote>
+<div><p>Characters that prefix files containing additional arguments</p>
+</div></blockquote>
+<p><strong>argument_default</strong> : None</p>
+<blockquote>
+<div><p>The default value for all arguments</p>
+</div></blockquote>
+<p><strong>conflict_handler</strong> : str</p>
+<blockquote>
+<div><p>String indicating how to handle conflicts</p>
+</div></blockquote>
+<p><strong>add_help</strong> : bool</p>
+<blockquote class="last">
+<div><p>Add a -h/-help option</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dipy.workflows.base.IntrospectiveArgumentParser.add_description">
+<tt class="descname">add_description</tt><big>(</big><big>)</big><a class="headerlink" href="#dipy.workflows.base.IntrospectiveArgumentParser.add_description" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dipy.workflows.base.IntrospectiveArgumentParser.add_epilogue">
+<tt class="descname">add_epilogue</tt><big>(</big><big>)</big><a class="headerlink" href="#dipy.workflows.base.IntrospectiveArgumentParser.add_epilogue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dipy.workflows.base.IntrospectiveArgumentParser.add_workflow">
+<tt class="descname">add_workflow</tt><big>(</big><em>workflow</em><big>)</big><a class="headerlink" href="#dipy.workflows.base.IntrospectiveArgumentParser.add_workflow" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dipy.workflows.base.IntrospectiveArgumentParser.get_flow_args">
+<tt class="descname">get_flow_args</tt><big>(</big><em>args=None</em>, <em>namespace=None</em><big>)</big><a class="headerlink" href="#dipy.workflows.base.IntrospectiveArgumentParser.get_flow_args" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dipy.workflows.base.IntrospectiveArgumentParser.get_outputs">
+<tt class="descname">get_outputs</tt><big>(</big><big>)</big><a class="headerlink" href="#dipy.workflows.base.IntrospectiveArgumentParser.get_outputs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dipy.workflows.base.IntrospectiveArgumentParser.show_argument">
+<tt class="descname">show_argument</tt><big>(</big><em>dest</em><big>)</big><a class="headerlink" href="#dipy.workflows.base.IntrospectiveArgumentParser.show_argument" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dipy.workflows.base.IntrospectiveArgumentParser.update_argument">
+<tt class="descname">update_argument</tt><big>(</big><em>*args</em>, <em>**kargs</em><big>)</big><a class="headerlink" href="#dipy.workflows.base.IntrospectiveArgumentParser.update_argument" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="numpydocstring">
+<h3><a class="reference internal" href="#dipy.workflows.base.NumpyDocString" title="dipy.workflows.base.NumpyDocString"><tt class="xref py py-class docutils literal"><span class="pre">NumpyDocString</span></tt></a><a class="headerlink" href="#numpydocstring" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="dipy.workflows.base.NumpyDocString">
+<em class="property">class </em><tt class="descclassname">dipy.workflows.base.</tt><tt class="descname">NumpyDocString</tt><big>(</big><em>docstring</em>, <em>config={}</em><big>)</big><a class="headerlink" href="#dipy.workflows.base.NumpyDocString" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="dipy.workflows.base.NumpyDocString.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>docstring</em>, <em>config={}</em><big>)</big><a class="headerlink" href="#dipy.workflows.base.NumpyDocString.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="id3">
+<h3><a class="reference internal" href="#dipy.workflows.docstring_parser.NumpyDocString" title="dipy.workflows.docstring_parser.NumpyDocString"><tt class="xref py py-class docutils literal"><span class="pre">NumpyDocString</span></tt></a><a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="dipy.workflows.docstring_parser.NumpyDocString">
+<em class="property">class </em><tt class="descclassname">dipy.workflows.docstring_parser.</tt><tt class="descname">NumpyDocString</tt><big>(</big><em>docstring</em>, <em>config={}</em><big>)</big><a class="headerlink" href="#dipy.workflows.docstring_parser.NumpyDocString" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="dipy.workflows.docstring_parser.NumpyDocString.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>docstring</em>, <em>config={}</em><big>)</big><a class="headerlink" href="#dipy.workflows.docstring_parser.NumpyDocString.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="reader">
+<h3><a class="reference internal" href="#dipy.workflows.docstring_parser.Reader" title="dipy.workflows.docstring_parser.Reader"><tt class="xref py py-class docutils literal"><span class="pre">Reader</span></tt></a><a class="headerlink" href="#reader" title="Permalink to this headline">¶</a></h3>
+<dl class="class">
+<dt id="dipy.workflows.docstring_parser.Reader">
+<em class="property">class </em><tt class="descclassname">dipy.workflows.docstring_parser.</tt><tt class="descname">Reader</tt><big>(</big><em>data</em><big>)</big><a class="headerlink" href="#dipy.workflows.docstring_parser.Reader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<p>A line-based string reader.</p>
+<p class="rubric">Methods</p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#dipy.workflows.docstring_parser.Reader.eof" title="dipy.workflows.docstring_parser.Reader.eof"><tt class="xref py py-obj docutils literal"><span class="pre">eof</span></tt></a>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#dipy.workflows.docstring_parser.Reader.is_empty" title="dipy.workflows.docstring_parser.Reader.is_empty"><tt class="xref py py-obj docutils literal"><span class="pre">is_empty</span></tt></a>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#dipy.workflows.docstring_parser.Reader.peek" title="dipy.workflows.docstring_parser.Reader.peek"><tt class="xref py py-obj docutils literal"><span class="pre">peek</span></tt></a>([n])</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#dipy.workflows.docstring_parser.Reader.read" title="dipy.workflows.docstring_parser.Reader.read"><tt class="xref py py-obj docutils literal"><span class="pre">read</span></tt></a>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#dipy.workflows.docstring_parser.Reader.read_to_condition" title="dipy.workflows.docstring_parser.Reader.read_to_condition"><tt class="xref py py-obj docutils literal"><span class="pre">read_to_condition</span></tt></a>(condition_func)</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#dipy.workflows.docstring_parser.Reader.read_to_next_empty_line" title="dipy.workflows.docstring_parser.Reader.read_to_next_empty_line"><tt class="xref py py-obj docutils literal"><span class="pre">read_to_next_empty_line</span></tt></a>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#dipy.workflows.docstring_parser.Reader.read_to_next_unindented_line" title="dipy.workflows.docstring_parser.Reader.read_to_next_unindented_line"><tt class="xref py py-obj docutils literal"><span class="pre">read_to_next_unindented_line</span></tt></a>()</td>
+<td></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#dipy.workflows.docstring_parser.Reader.reset" title="dipy.workflows.docstring_parser.Reader.reset"><tt class="xref py py-obj docutils literal"><span class="pre">reset</span></tt></a>()</td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#dipy.workflows.docstring_parser.Reader.seek_next_non_empty_line" title="dipy.workflows.docstring_parser.Reader.seek_next_non_empty_line"><tt class="xref py py-obj docutils literal"><span class="pre">seek_next_non_empty_line</span></tt></a>()</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="dipy.workflows.docstring_parser.Reader.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>data</em><big>)</big><a class="headerlink" href="#dipy.workflows.docstring_parser.Reader.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>data</strong> : str</p>
+<blockquote>
+<div><p>String with lines separated by &#8216;</p>
+</div></blockquote>
+<p class="last"><strong>&#8216;.</strong> :</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="dipy.workflows.docstring_parser.Reader.eof">
+<tt class="descname">eof</tt><big>(</big><big>)</big><a class="headerlink" href="#dipy.workflows.docstring_parser.Reader.eof" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dipy.workflows.docstring_parser.Reader.is_empty">
+<tt class="descname">is_empty</tt><big>(</big><big>)</big><a class="headerlink" href="#dipy.workflows.docstring_parser.Reader.is_empty" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dipy.workflows.docstring_parser.Reader.peek">
+<tt class="descname">peek</tt><big>(</big><em>n=0</em><big>)</big><a class="headerlink" href="#dipy.workflows.docstring_parser.Reader.peek" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dipy.workflows.docstring_parser.Reader.read">
+<tt class="descname">read</tt><big>(</big><big>)</big><a class="headerlink" href="#dipy.workflows.docstring_parser.Reader.read" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dipy.workflows.docstring_parser.Reader.read_to_condition">
+<tt class="descname">read_to_condition</tt><big>(</big><em>condition_func</em><big>)</big><a class="headerlink" href="#dipy.workflows.docstring_parser.Reader.read_to_condition" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dipy.workflows.docstring_parser.Reader.read_to_next_empty_line">
+<tt class="descname">read_to_next_empty_line</tt><big>(</big><big>)</big><a class="headerlink" href="#dipy.workflows.docstring_parser.Reader.read_to_next_empty_line" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dipy.workflows.docstring_parser.Reader.read_to_next_unindented_line">
+<tt class="descname">read_to_next_unindented_line</tt><big>(</big><big>)</big><a class="headerlink" href="#dipy.workflows.docstring_parser.Reader.read_to_next_unindented_line" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dipy.workflows.docstring_parser.Reader.reset">
+<tt class="descname">reset</tt><big>(</big><big>)</big><a class="headerlink" href="#dipy.workflows.docstring_parser.Reader.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="dipy.workflows.docstring_parser.Reader.seek_next_non_empty_line">
+<tt class="descname">seek_next_non_empty_line</tt><big>(</big><big>)</big><a class="headerlink" href="#dipy.workflows.docstring_parser.Reader.seek_next_non_empty_line" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="dedent-lines">
+<h3>dedent_lines<a class="headerlink" href="#dedent-lines" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt id="dipy.workflows.docstring_parser.dedent_lines">
+<tt class="descclassname">dipy.workflows.docstring_parser.</tt><tt class="descname">dedent_lines</tt><big>(</big><em>lines</em><big>)</big><a class="headerlink" href="#dipy.workflows.docstring_parser.dedent_lines" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deindent a list of lines maximally</p>
+</dd></dl>
+
+</div>
+<div class="section" id="warn">
+<h3>warn<a class="headerlink" href="#warn" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt id="dipy.workflows.docstring_parser.warn">
+<tt class="descclassname">dipy.workflows.docstring_parser.</tt><tt class="descname">warn</tt><big>(</big><big>)</big><a class="headerlink" href="#dipy.workflows.docstring_parser.warn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Issue a warning, or maybe ignore it or raise an exception.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="basename">
+<h3>basename<a class="headerlink" href="#basename" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt id="dipy.workflows.segment.basename">
+<tt class="descclassname">dipy.workflows.segment.</tt><tt class="descname">basename</tt><big>(</big><em>p</em><big>)</big><a class="headerlink" href="#dipy.workflows.segment.basename" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the final component of a pathname</p>
+</dd></dl>
+
+</div>
+<div class="section" id="choose-create-out-dir">
+<h3>choose_create_out_dir<a class="headerlink" href="#choose-create-out-dir" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt id="dipy.workflows.segment.choose_create_out_dir">
+<tt class="descclassname">dipy.workflows.segment.</tt><tt class="descname">choose_create_out_dir</tt><big>(</big><em>out_dir</em>, <em>root_path</em><big>)</big><a class="headerlink" href="#dipy.workflows.segment.choose_create_out_dir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Analyses the parameters and returns the appropriate output path.
+It creates the directory if it does not exists.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="glob">
+<h3>glob<a class="headerlink" href="#glob" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt id="dipy.workflows.segment.glob">
+<tt class="descclassname">dipy.workflows.segment.</tt><tt class="descname">glob</tt><big>(</big><em>pathname</em><big>)</big><a class="headerlink" href="#dipy.workflows.segment.glob" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of paths matching a pathname pattern.</p>
+<p>The pattern may contain simple shell-style wildcards a la
+fnmatch. However, unlike fnmatch, filenames starting with a
+dot are special cases that are not matched by &#8216;*&#8217; and &#8216;?&#8217;
+patterns.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="join">
+<h3>join<a class="headerlink" href="#join" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt id="dipy.workflows.segment.join">
+<tt class="descclassname">dipy.workflows.segment.</tt><tt class="descname">join</tt><big>(</big><em>a</em>, <em>*p</em><big>)</big><a class="headerlink" href="#dipy.workflows.segment.join" title="Permalink to this definition">¶</a></dt>
+<dd><p>Join two or more pathname components, inserting &#8216;/&#8217; as needed.
+If any component is an absolute path, all previous path components
+will be discarded.  An empty last part will result in a path that
+ends with a separator.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="median-otsu">
+<h3>median_otsu<a class="headerlink" href="#median-otsu" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt id="dipy.workflows.segment.median_otsu">
+<tt class="descclassname">dipy.workflows.segment.</tt><tt class="descname">median_otsu</tt><big>(</big><em>input_volume</em>, <em>median_radius=4</em>, <em>numpass=4</em>, <em>autocrop=False</em>, <em>vol_idx=None</em>, <em>dilate=None</em><big>)</big><a class="headerlink" href="#dipy.workflows.segment.median_otsu" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simple brain extraction tool method for images from DWI data.</p>
+<p>It uses a median filter smoothing of the input_volumes <cite>vol_idx</cite> and an
+automatic histogram Otsu thresholding technique, hence the name
+<em>median_otsu</em>.</p>
+<p>This function is inspired from Mrtrix&#8217;s bet which has default values
+<tt class="docutils literal"><span class="pre">median_radius=3</span></tt>, <tt class="docutils literal"><span class="pre">numpass=2</span></tt>. However, from tests on multiple 1.5T
+and 3T data     from GE, Philips, Siemens, the most robust choice is
+<tt class="docutils literal"><span class="pre">median_radius=4</span></tt>, <tt class="docutils literal"><span class="pre">numpass=4</span></tt>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>input_volume</strong> : ndarray</p>
+<blockquote>
+<div><p>ndarray of the brain volume</p>
+</div></blockquote>
+<p><strong>median_radius</strong> : int</p>
+<blockquote>
+<div><p>Radius (in voxels) of the applied median filter (default: 4).</p>
+</div></blockquote>
+<p><strong>numpass: int</strong> :</p>
+<blockquote>
+<div><p>Number of pass of the median filter (default: 4).</p>
+</div></blockquote>
+<p><strong>autocrop: bool, optional</strong> :</p>
+<blockquote>
+<div><p>if True, the masked input_volume will also be cropped using the
+bounding box defined by the masked data. Should be on if DWI is
+upsampled to 1x1x1 resolution. (default: False).</p>
+</div></blockquote>
+<p><strong>vol_idx</strong> : None or array, optional</p>
+<blockquote>
+<div><p>1D array representing indices of <tt class="docutils literal"><span class="pre">axis=3</span></tt> of a 4D <cite>input_volume</cite> None
+(the default) corresponds to <tt class="docutils literal"><span class="pre">(0,)</span></tt> (assumes first volume in
+4D array).</p>
+</div></blockquote>
+<p><strong>dilate</strong> : None or int, optional</p>
+<blockquote>
+<div><p>number of iterations for binary dilation</p>
+</div></blockquote>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><strong>maskedvolume</strong> : ndarray</p>
+<blockquote>
+<div><p>Masked input_volume</p>
+</div></blockquote>
+<p><strong>mask</strong> : 3D ndarray</p>
+<blockquote class="last">
+<div><p>The binary brain mask</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>Copyright (C) 2011, the scikit-image team
+All rights reserved.</p>
+<p>Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li>Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.</li>
+<li>Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in
+the documentation and/or other materials provided with the
+distribution.</li>
+<li>Neither the name of skimage nor the names of its contributors may be
+used to endorse or promote products derived from this software without
+specific prior written permission.</li>
+</ol>
+</div></blockquote>
+<p>THIS SOFTWARE IS PROVIDED BY THE AUTHOR <a href="#id4"><span class="problematic" id="id5">``</span></a>AS IS&#8217;&#8217; AND ANY EXPRESS OR
+IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="median-otsu-flow">
+<h3>median_otsu_flow<a class="headerlink" href="#median-otsu-flow" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt id="dipy.workflows.segment.median_otsu_flow">
+<tt class="descclassname">dipy.workflows.segment.</tt><tt class="descname">median_otsu_flow</tt><big>(</big><em>input_files</em>, <em>out_dir=''</em>, <em>save_masked=False</em>, <em>median_radius=4</em>, <em>numpass=4</em>, <em>autocrop=False</em>, <em>vol_idx=None</em>, <em>dilate=None</em><big>)</big><a class="headerlink" href="#dipy.workflows.segment.median_otsu_flow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Workflow wrapping the median_otsu segmentation method.</p>
+<p>It applies median_otsu segmentation on each file found by &#8216;globing&#8217;
+<tt class="docutils literal"><span class="pre">input_files</span></tt> and saves the results in a directory specified by
+<tt class="docutils literal"><span class="pre">out_dir</span></tt>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>input_files</strong> : string</p>
+<blockquote>
+<div><p>Path to the input volumes. This path may contain wildcards to process
+multiple inputs at once.</p>
+</div></blockquote>
+<p><strong>out_dir</strong> : string, optional</p>
+<blockquote>
+<div><p>Output directory (default input file directory)</p>
+</div></blockquote>
+<p><strong>save_masked</strong> : bool</p>
+<blockquote>
+<div><p>Save mask</p>
+</div></blockquote>
+<p><strong>median_radius</strong> : int, optional</p>
+<blockquote>
+<div><p>Radius (in voxels) of the applied median filter(default 4)</p>
+</div></blockquote>
+<p><strong>numpass</strong> : int, optional</p>
+<blockquote>
+<div><p>Number of pass of the median filter (default 4)</p>
+</div></blockquote>
+<p><strong>autocrop</strong> : bool, optional</p>
+<blockquote>
+<div><p>If True, the masked input_volumes will also be cropped using the
+bounding box defined by the masked data. Should be on if DWI is
+upsampled to 1x1x1 resolution. (default False)</p>
+</div></blockquote>
+<p><strong>vol_idx</strong> : string, optional</p>
+<blockquote>
+<div><p>1D array representing indices of <tt class="docutils literal"><span class="pre">axis=3</span></tt> of a 4D <cite>input_volume</cite>
+&#8216;None&#8217; (the default) corresponds to <tt class="docutils literal"><span class="pre">(0,)</span></tt> (assumes first volume in
+4D array)</p>
+</div></blockquote>
+<p><strong>dilate</strong> : string, optional</p>
+<blockquote class="last">
+<div><p>number of iterations for binary dilation (default &#8216;None&#8217;)</p>
+</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="splitext">
+<h3>splitext<a class="headerlink" href="#splitext" title="Permalink to this headline">¶</a></h3>
+<dl class="function">
+<dt id="dipy.workflows.segment.splitext">
+<tt class="descclassname">dipy.workflows.segment.</tt><tt class="descname">splitext</tt><big>(</big><em>p</em><big>)</big><a class="headerlink" href="#dipy.workflows.segment.splitext" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split the extension from a pathname.</p>
+<p>Extension is everything from the last dot to the end, ignoring
+leading dots.  Returns &#8220;(root, ext)&#8221;; ext may be empty.</p>
+</dd></dl>
+
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+  <li><a href="../index.html">Home</a> |&nbsp;</li>
+  <li><a href="../stateoftheart.html">Overview</a> |&nbsp;</li>
+  <li><a href="../examples_index.html">Gallery</a> |&nbsp;</li>
+  <li><a href="../installation.html">Download</a> |&nbsp;</li>
+  <li><a href="../subscribe.html">Subscribe</a> |&nbsp;</li>
+  <li><a href="../developers.html">Developers</a> |&nbsp;</li>
+  <li><a href="../cite.html">Cite</a> &nbsp;</li>
+
+          <li><a href="../documentation.html" >Documentation</a> &raquo;</li>
+          <li><a href="index.html" >API Reference</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2015, dipy developers &lt;neuroimaging@python.org&gt;.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

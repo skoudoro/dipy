@@ -1,0 +1,429 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Dipy &mdash; dipy 0.11.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/dipy.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.11.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="dipy 0.11.0 documentation" href="../index.html" />
+  <meta name="keywords" content="dipy, dMRI, DTI, DSI, diffusion MRI, Tensor,
+  neuroimaging, python, neuroscience, Eleftherios, Garyfallidis, tractography,
+  streamlines, fiber tracking">
+
+  </head>
+  <body>
+<div style="background-color: white; text-align: left; padding: 10px 10px 15px 15px">
+ <a href="../index.html">
+  <img src="../_static/dipy-banner.png" alt="dipy logo"  border="0" />
+</div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+  <li><a href="../index.html">Home</a> |&nbsp;</li>
+  <li><a href="../stateoftheart.html">Overview</a> |&nbsp;</li>
+  <li><a href="../examples_index.html">Gallery</a> |&nbsp;</li>
+  <li><a href="../installation.html">Download</a> |&nbsp;</li>
+  <li><a href="../subscribe.html">Subscribe</a> |&nbsp;</li>
+  <li><a href="../developers.html">Developers</a> |&nbsp;</li>
+  <li><a href="../cite.html">Cite</a> &nbsp;</li>
+ 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+
+
+<h4> Site Navigation </h4>
+  <ul>
+    <li><a href="../documentation.html">Documentation</a></li>
+    <li><a href="../devel/index.html">Development</a></li>
+  </ul>
+
+<h4> NIPY Community </h4>
+  <ul class="simple">
+    <li><a class="reference external"
+	href="http://nipy.org/">Community Home</a></li>
+    <li><a class="reference external"
+	href="http://nipy.org/software/projects/">NIPY Projects</a></li>
+    <li><a class="reference external"
+	href="https://mail.python.org/mailman/listinfo/neuroimaging">Mailing List</a></li>
+    <li><a class="reference external"
+	href="http://nipy.org/nipy/license.html">License</a></li>
+  </ul>
+
+
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Crossing-preserving contextual enhancement</a><ul>
+<li><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+</ul>
+
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/examples_built/contextual_enhancement.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+
+<div id="searchbox-ml" style="display: none">
+  <h3>Search mailing list archive</h3>
+  <script type="text/javascript">
+    function mlsearch(curobj)
+    {
+    curobj.q.value="site:mail.python.org/pipermail/neuroimaging/ "+curobj.userquery.value
+    }
+  </script>
+  <form action="http://www.google.com/search" method="get" onSubmit="mlsearch(this)">
+    <input name="userquery" size="13" type="text" /> <input type="submit" value="Go" />
+    <input name="q" type="hidden" />
+  </form>
+</div>
+
+<div id="searchbox-site" style="display: none">
+  <h3>Search this site</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" size="13" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox-ml').show(0);</script>
+<script type="text/javascript">$('#searchbox-site').show(0);</script>
+
+
+<script>
+     ((window.gitter = {}).chat = {}).options = {
+       room: 'nipy/dipy'
+     };
+</script>
+<script src="https://sidecar.gitter.im/dist/sidecar.v1.js" async defer></script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="crossing-preserving-contextual-enhancement">
+<span id="example-contextual-enhancement"></span><h1>Crossing-preserving contextual enhancement<a class="headerlink" href="#crossing-preserving-contextual-enhancement" title="Permalink to this headline">¶</a></h1>
+<p>This demo presents an example of crossing-preserving contextual enhancement of
+FOD/ODF fields [<a class="reference internal" href="#meesters2016-ismrm">Meesters2016_ISMRM</a>], implementing the contextual PDE framework
+of <a class="reference internal" href="#portegies2015-plosone" id="id1">[Portegies2015_PLoSOne]</a> for processing HARDI data. The aim is to enhance the
+alignment of elongated structures in the data such that crossing/junctions are
+maintained while reducing noise and small incoherent structures. This is
+achieved via a hypo-elliptic 2nd order PDE in the domain of coupled positions
+and orientations <img class="math" src="../_images/math/2b914c760eda74c3d5afd51a606a2442fc558ffb.png" alt="\mathbb{R}^3 \rtimes S^2"/>. This domain carries a
+non-flat geometrical differential structure that allows including a notion of
+alignment between neighboring points.</p>
+<p>Let <img class="math" src="../_images/math/6ae062099ac3519aba5950239f3d483b89ed5fc3.png" alt="({\bf y},{\bf n}) \in \mathbb{R}^3\rtimes S^2"/> where
+<img class="math" src="../_images/math/dc11f008db8fef1b84fa7809be71785ebc086870.png" alt="{\bf y} \in \mathbb{R}^{3}"/> denotes the spatial part, and
+<img class="math" src="../_images/math/06998993df5cc37299b915361b38a1d3c9b776c6.png" alt="{\bf n} \in S^2"/> the angular part.
+Let <img class="math" src="../_images/math/602a3c6e9759bc752ada220107b093af55b69ccb.png" alt="W:\mathbb{R}^3\rtimes S^2\times \mathbb{R}^{+} \to \mathbb{R}"/> be
+the function representing the evolution of FOD/ODF field. Then, the contextual
+PDE with evolution time <img class="math" src="../_images/math/4974a6c38c75639158bae9818269637d36d614ce.png" alt="t\geq 0"/> is given by:</p>
+<div class="math">
+<p><img src="../_images/math/0cedd4e30d00fe90a817533ded821cf524c52107.png" alt="\begin{cases}
+\frac{\partial}{\partial t} W({\bf y},{\bf n},t) &amp;= ((D^{33}({\bf n} \cdot
+        \nabla)^2 + D^{44} \Delta_{S^2})W)({\bf y},{\bf n},t)
+\\ W({\bf y},{\bf n},0) &amp;= U({\bf y},{\bf n})
+\end{cases},"/></p>
+</div><p>where:</p>
+<ul class="simple">
+<li><img class="math" src="../_images/math/70d7262ed1251b06aa06b9cb3c030b48cbb27dec.png" alt="D^{33}&gt;0"/> is  the coefficient for the spatial smoothing (which goes only in the direction of <img class="math" src="../_images/math/413f8a8e40062a9090d9d50b88bc7b551b314c26.png" alt="n"/>);</li>
+<li><img class="math" src="../_images/math/b0af8334f5955ea14c7fca2f28a70be4eb1737cd.png" alt="D^{44}&gt;0"/> is the coefficient for the angular smoothing (here <img class="math" src="../_images/math/44eecb5f574ce66d1bd5a97cfa2c6228dc383962.png" alt="\Delta_{S^2}"/> denotes the Laplace-Beltrami operator on the sphere <img class="math" src="../_images/math/55db8c83706aa1bd958bb27cc7e58e4c5359e767.png" alt="S^2"/>);</li>
+<li><img class="math" src="../_images/math/ae9444bd16f3c09a615bcdcdc6ab3f848a8a993c.png" alt="U:\mathbb{R}^3\rtimes S^2 \to \mathbb{R}"/> is the initial condition given by the noisy FOD/ODF’s field.</li>
+</ul>
+<p>This equation is solved via a shift-twist convolution (denoted by <img class="math" src="../_images/math/e02a7ef5d86475523a20f11a6af2e634d398753d.png" alt="\ast_{\mathbb{R}^3\rtimes S^2}"/>) with its corresponding kernel <img class="math" src="../_images/math/3d08bc0ad5670081000712f4755d65195b7bedff.png" alt="P_t:\mathbb{R}^3\rtimes S^2 \to \mathbb{R}^+"/>:</p>
+<div class="math">
+<p><img src="../_images/math/7fe2ae6f14bf92de32885691bffb12127d721b9f.png" alt="W(\vec{y},\vec{n},t) = (P_t \ast_{\mathbb{R}^3 \rtimes S^2} U)(\vec{y},\vec{n})
+= \int_{\mathbb{R}^3} \int_{S^2} P_t (R^T_{\vec{n}^\prime}(\vec{y}-\vec{y}^\prime),
+ R^T_{\vec{n}^\prime} \vec{n} ) U(\vec{y}^\prime, \vec{n}^\prime)"/></p>
+</div><p>Here, <img class="math" src="../_images/math/82b0515fb8a020fc7aa1cb40715c586270b7b8f9.png" alt="R_{\bf n}"/> is any 3D rotation that maps the vector <img class="math" src="../_images/math/3691d14407c82e1d7852e00cc863a71d4ebc7cfd.png" alt="(0,0,1)"/>
+onto <img class="math" src="../_images/math/40c282bf1d42a74728ce93b97c01ddff1a638a02.png" alt="{\bf n}"/>.</p>
+<p>Note that the shift-twist convolution differs from a Euclidean convolution and
+takes into account the non-flat structure of the space <img class="math" src="../_images/math/0f13f686b68d1552617b46ed7adc861ef71e455e.png" alt="\mathbb{R}^3\rtimes S^2"/>.</p>
+<p>The kernel <img class="math" src="../_images/math/07b315c14807c26e84999a23c8daf36b885b9c6d.png" alt="P_t"/> has a stochastic interpretation <a class="reference internal" href="#duitsandfranken-jmiv" id="id2">[DuitsAndFranken_JMIV]</a>.
+It can be seen as the limiting distribution obtained by accumulating random
+walks of particles in the position/orientation domain, where in each step the
+particles can (randomly) move forward/backward along their current orientation,
+and (randomly) change their orientation.  This is an extension to the 3D case of
+the process for contour enhancement of 2D images.</p>
+<div class="figure align-center">
+<a class="reference internal image-reference" href="../_images/stochastic_process.jpg"><img alt="../_images/stochastic_process.jpg" src="../_images/stochastic_process.jpg" style="width: 384.0px; height: 322.8px;" /></a>
+<p class="caption">The random motion of particles (a) and it&#8217;s corresponding probability map (b) in 2D. The 3D kernel is shown on the right. Adapted from <a class="reference internal" href="#portegies2015-plosone" id="id3">[Portegies2015_PLoSOne]</a>.</p>
+</div>
+<p>In practice, as the exact analytical formulas for the kernel <img class="math" src="../_images/math/07b315c14807c26e84999a23c8daf36b885b9c6d.png" alt="P_t"/>
+are unknown, we use the approximation given in <a class="reference internal" href="#portegies2015-ssvm" id="id4">[Portegies2015_SSVM]</a>.</p>
+<p>The enhancement is evaluated on the Stanford HARDI dataset
+(150 orientations, b=2000s/mm^2) where Rician noise is added. Constrained
+spherical deconvolution is used to model the fiber orientations.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">dipy.data</span> <span class="kn">import</span> <span class="n">fetch_stanford_hardi</span><span class="p">,</span> <span class="n">read_stanford_hardi</span>
+<span class="kn">from</span> <span class="nn">dipy.sims.voxel</span> <span class="kn">import</span> <span class="n">add_noise</span>
+<span class="kn">from</span> <span class="nn">dipy.core.gradients</span> <span class="kn">import</span> <span class="n">gradient_table</span>
+
+<span class="c"># Read data</span>
+<span class="n">fetch_stanford_hardi</span><span class="p">()</span>
+<span class="n">img</span><span class="p">,</span> <span class="n">gtab</span> <span class="o">=</span> <span class="n">read_stanford_hardi</span><span class="p">()</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+
+<span class="c"># Add Rician noise</span>
+<span class="kn">from</span> <span class="nn">dipy.segment.mask</span> <span class="kn">import</span> <span class="n">median_otsu</span>
+<span class="n">b0_mask</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">median_otsu</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">data_noisy</span> <span class="o">=</span> <span class="n">add_noise</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">mask</span><span class="p">]),</span> <span class="n">noise_type</span><span class="o">=</span><span class="s">&#39;rician&#39;</span><span class="p">)</span>
+
+<span class="c"># Select a small part of it</span>
+<span class="n">data_small</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="mi">25</span><span class="p">:</span><span class="mi">40</span><span class="p">,</span> <span class="mi">65</span><span class="p">:</span><span class="mi">80</span><span class="p">,</span> <span class="mi">35</span><span class="p">:</span><span class="mi">42</span><span class="p">]</span>
+<span class="n">data_noisy_small</span> <span class="o">=</span> <span class="n">data_noisy</span><span class="p">[</span><span class="mi">25</span><span class="p">:</span><span class="mi">40</span><span class="p">,</span> <span class="mi">65</span><span class="p">:</span><span class="mi">80</span><span class="p">,</span> <span class="mi">35</span><span class="p">:</span><span class="mi">42</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Fit an initial model to the data, in this case Constrained Spherical
+Deconvolution is used.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c"># Perform CSD on the original data</span>
+<span class="kn">from</span> <span class="nn">dipy.reconst.csdeconv</span> <span class="kn">import</span> <span class="n">auto_response</span>
+<span class="kn">from</span> <span class="nn">dipy.reconst.csdeconv</span> <span class="kn">import</span> <span class="n">ConstrainedSphericalDeconvModel</span>
+<span class="n">response</span><span class="p">,</span> <span class="n">ratio</span> <span class="o">=</span> <span class="n">auto_response</span><span class="p">(</span><span class="n">gtab</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">roi_radius</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">fa_thr</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+<span class="n">csd_model_orig</span> <span class="o">=</span> <span class="n">ConstrainedSphericalDeconvModel</span><span class="p">(</span><span class="n">gtab</span><span class="p">,</span> <span class="n">response</span><span class="p">)</span>
+<span class="n">csd_fit_orig</span> <span class="o">=</span> <span class="n">csd_model_orig</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">data_small</span><span class="p">)</span>
+<span class="n">csd_shm_orig</span> <span class="o">=</span> <span class="n">csd_fit_orig</span><span class="o">.</span><span class="n">shm_coeff</span>
+
+<span class="c"># Perform CSD on the original data + noise</span>
+<span class="n">response</span><span class="p">,</span> <span class="n">ratio</span> <span class="o">=</span> <span class="n">auto_response</span><span class="p">(</span><span class="n">gtab</span><span class="p">,</span> <span class="n">data_noisy</span><span class="p">,</span> <span class="n">roi_radius</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">fa_thr</span><span class="o">=</span><span class="mf">0.7</span><span class="p">)</span>
+<span class="n">csd_model_noisy</span> <span class="o">=</span> <span class="n">ConstrainedSphericalDeconvModel</span><span class="p">(</span><span class="n">gtab</span><span class="p">,</span> <span class="n">response</span><span class="p">)</span>
+<span class="n">csd_fit_noisy</span> <span class="o">=</span> <span class="n">csd_model_noisy</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">data_noisy_small</span><span class="p">)</span>
+<span class="n">csd_shm_noisy</span> <span class="o">=</span> <span class="n">csd_fit_noisy</span><span class="o">.</span><span class="n">shm_coeff</span>
+</pre></div>
+</div>
+<p>Inspired by [<a class="reference internal" href="#rodrigueseurographics">RodriguesEurographics</a>], a lookup-table is created, containing
+rotated versions of the kernel <img class="math" src="../_images/math/07b315c14807c26e84999a23c8daf36b885b9c6d.png" alt="P_t"/> sampled over a discrete set of
+orientations. In order to ensure rotationally invariant processing, the discrete
+orientations are required to be equally distributed over a sphere. Per default,
+a sphere with 100 directions is used.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">dipy.denoise.enhancement_kernel</span> <span class="kn">import</span> <span class="n">EnhancementKernel</span>
+<span class="kn">from</span> <span class="nn">dipy.denoise.shift_twist_convolution</span> <span class="kn">import</span> <span class="n">convolve</span>
+
+<span class="c"># Create lookup table</span>
+<span class="n">D33</span> <span class="o">=</span> <span class="mf">1.0</span>
+<span class="n">D44</span> <span class="o">=</span> <span class="mf">0.02</span>
+<span class="n">t</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">k</span> <span class="o">=</span> <span class="n">EnhancementKernel</span><span class="p">(</span><span class="n">D33</span><span class="p">,</span> <span class="n">D44</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Visualize the kernel</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">dipy.viz</span> <span class="kn">import</span> <span class="n">fvtk</span>
+<span class="kn">from</span> <span class="nn">dipy.data</span> <span class="kn">import</span> <span class="n">get_sphere</span>
+<span class="kn">from</span> <span class="nn">dipy.reconst.shm</span> <span class="kn">import</span> <span class="n">sf_to_sh</span><span class="p">,</span> <span class="n">sh_to_sf</span>
+<span class="n">ren</span> <span class="o">=</span> <span class="n">fvtk</span><span class="o">.</span><span class="n">ren</span><span class="p">()</span>
+
+<span class="c"># convolve kernel with delta spike</span>
+<span class="n">spike</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">7</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="n">k</span><span class="o">.</span><span class="n">get_orientations</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="n">spike</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">spike_shm_conv</span> <span class="o">=</span> <span class="n">convolve</span><span class="p">(</span><span class="n">sf_to_sh</span><span class="p">(</span><span class="n">spike</span><span class="p">,</span> <span class="n">k</span><span class="o">.</span><span class="n">get_sphere</span><span class="p">(),</span> <span class="n">sh_order</span><span class="o">=</span><span class="mi">8</span><span class="p">),</span> <span class="n">k</span><span class="p">,</span>
+                          <span class="n">sh_order</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">test_mode</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+<span class="n">sphere</span> <span class="o">=</span> <span class="n">get_sphere</span><span class="p">(</span><span class="s">&#39;symmetric724&#39;</span><span class="p">)</span>
+<span class="n">spike_sf_conv</span> <span class="o">=</span> <span class="n">sh_to_sf</span><span class="p">(</span><span class="n">spike_shm_conv</span><span class="p">,</span> <span class="n">sphere</span><span class="p">,</span> <span class="n">sh_order</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">model_kernel</span> <span class="o">=</span> <span class="n">fvtk</span><span class="o">.</span><span class="n">sphere_funcs</span><span class="p">((</span><span class="n">spike_sf_conv</span> <span class="o">*</span> <span class="mi">6</span><span class="p">)[</span><span class="mi">3</span><span class="p">,:,:,:],</span>
+                                  <span class="n">sphere</span><span class="p">,</span>
+                                  <span class="n">norm</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                                  <span class="n">radial_scale</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">fvtk</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ren</span><span class="p">,</span> <span class="n">model_kernel</span><span class="p">)</span>
+<span class="n">fvtk</span><span class="o">.</span><span class="n">camera</span><span class="p">(</span><span class="n">ren</span><span class="p">,</span> <span class="n">pos</span><span class="o">=</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">focal</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">viewup</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+<span class="n">fvtk</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">ren</span><span class="p">,</span> <span class="n">out_path</span><span class="o">=</span><span class="s">&#39;kernel.png&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">900</span><span class="p">,</span> <span class="mi">900</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="figure align-center">
+<img alt="../_images/kernel.png" src="../_images/kernel.png" />
+<p class="caption">Visualization of the contour enhancement kernel.</p>
+</div>
+<p>Shift-twist convolution is applied on the noisy data</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c"># Perform convolution</span>
+<span class="n">csd_shm_enh</span> <span class="o">=</span> <span class="n">convolve</span><span class="p">(</span><span class="n">csd_shm_noisy</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">sh_order</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The Sharpening Deconvolution Transform is applied to sharpen the ODF field.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c"># Sharpen via the Sharpening Deconvolution Transform</span>
+<span class="kn">from</span> <span class="nn">dipy.reconst.csdeconv</span> <span class="kn">import</span> <span class="n">odf_sh_to_sharp</span>
+<span class="n">csd_shm_enh_sharp</span> <span class="o">=</span> <span class="n">odf_sh_to_sharp</span><span class="p">(</span><span class="n">csd_shm_enh</span><span class="p">,</span> <span class="n">sphere</span><span class="p">,</span>  <span class="n">sh_order</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">lambda_</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+
+<span class="c"># Convert raw and enhanced data to discrete form</span>
+<span class="n">csd_sf_orig</span> <span class="o">=</span> <span class="n">sh_to_sf</span><span class="p">(</span><span class="n">csd_shm_orig</span><span class="p">,</span> <span class="n">sphere</span><span class="p">,</span> <span class="n">sh_order</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">csd_sf_noisy</span> <span class="o">=</span> <span class="n">sh_to_sf</span><span class="p">(</span><span class="n">csd_shm_noisy</span><span class="p">,</span> <span class="n">sphere</span><span class="p">,</span> <span class="n">sh_order</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">csd_sf_enh</span> <span class="o">=</span> <span class="n">sh_to_sf</span><span class="p">(</span><span class="n">csd_shm_enh</span><span class="p">,</span> <span class="n">sphere</span><span class="p">,</span> <span class="n">sh_order</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">csd_sf_enh_sharp</span> <span class="o">=</span> <span class="n">sh_to_sf</span><span class="p">(</span><span class="n">csd_shm_enh_sharp</span><span class="p">,</span> <span class="n">sphere</span><span class="p">,</span> <span class="n">sh_order</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+
+<span class="c"># Normalize the sharpened ODFs</span>
+<span class="n">csd_sf_enh_sharp</span> <span class="o">=</span> <span class="n">csd_sf_enh_sharp</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">csd_sf_orig</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">csd_sf_enh_sharp</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The end results are visualized. It can be observed that the end result after
+diffusion and sharpening is closer to the original noiseless dataset.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">csd_sf_orig_slice</span> <span class="o">=</span> <span class="n">csd_sf_orig</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="p">:]</span>
+<span class="n">csd_sf_noisy_slice</span> <span class="o">=</span> <span class="n">csd_sf_noisy</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="p">:]</span>
+<span class="n">csd_sf_enh_slice</span> <span class="o">=</span> <span class="n">csd_sf_enh</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="p">:]</span>
+<span class="n">csd_sf_enh_sharp_slice</span> <span class="o">=</span> <span class="n">csd_sf_enh_sharp</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="p">:]</span>
+
+<span class="n">ren</span> <span class="o">=</span> <span class="n">fvtk</span><span class="o">.</span><span class="n">ren</span><span class="p">()</span>
+
+<span class="c"># original ODF field</span>
+<span class="n">fodf_spheres_org</span> <span class="o">=</span> <span class="n">fvtk</span><span class="o">.</span><span class="n">sphere_funcs</span><span class="p">(</span><span class="n">csd_sf_orig_slice</span><span class="p">,</span>
+                                     <span class="n">sphere</span><span class="p">,</span>
+                                     <span class="n">scale</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                     <span class="n">norm</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                                     <span class="n">radial_scale</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">fodf_spheres_org</span><span class="o">.</span><span class="n">SetPosition</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">35</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="n">fvtk</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ren</span><span class="p">,</span> <span class="n">fodf_spheres_org</span><span class="p">)</span>
+
+<span class="c"># ODF field with added noise</span>
+<span class="n">fodf_spheres</span> <span class="o">=</span> <span class="n">fvtk</span><span class="o">.</span><span class="n">sphere_funcs</span><span class="p">(</span><span class="n">csd_sf_noisy_slice</span><span class="p">,</span>
+                                 <span class="n">sphere</span><span class="p">,</span>
+                                 <span class="n">scale</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                 <span class="n">norm</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                                 <span class="n">radial_scale</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">fodf_spheres</span><span class="o">.</span><span class="n">SetPosition</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="n">fvtk</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ren</span><span class="p">,</span> <span class="n">fodf_spheres</span><span class="p">)</span>
+
+<span class="c"># Enhancement of noisy ODF field</span>
+<span class="n">fodf_spheres_enh</span> <span class="o">=</span> <span class="n">fvtk</span><span class="o">.</span><span class="n">sphere_funcs</span><span class="p">(</span><span class="n">csd_sf_enh_slice</span><span class="p">,</span>
+                                     <span class="n">sphere</span><span class="p">,</span>
+                                     <span class="n">scale</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                     <span class="n">norm</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                                     <span class="n">radial_scale</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">fodf_spheres_enh</span><span class="o">.</span><span class="n">SetPosition</span><span class="p">(</span><span class="mi">35</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="n">fvtk</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ren</span><span class="p">,</span> <span class="n">fodf_spheres_enh</span><span class="p">)</span>
+
+<span class="c"># Additional sharpening</span>
+<span class="n">fodf_spheres_enh_sharp</span> <span class="o">=</span> <span class="n">fvtk</span><span class="o">.</span><span class="n">sphere_funcs</span><span class="p">(</span><span class="n">csd_sf_enh_sharp_slice</span> <span class="o">*</span> <span class="mf">1.5</span><span class="p">,</span>
+                                           <span class="n">sphere</span><span class="p">,</span>
+                                           <span class="n">scale</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                           <span class="n">norm</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                                           <span class="n">radial_scale</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">fodf_spheres_enh_sharp</span><span class="o">.</span><span class="n">SetPosition</span><span class="p">(</span><span class="mi">35</span><span class="p">,</span> <span class="mi">35</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="n">fvtk</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">ren</span><span class="p">,</span> <span class="n">fodf_spheres_enh_sharp</span><span class="p">)</span>
+
+<span class="n">fvtk</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="n">ren</span><span class="p">,</span> <span class="n">out_path</span><span class="o">=</span><span class="s">&#39;enhancements.png&#39;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">900</span><span class="p">,</span> <span class="mi">900</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="figure align-center">
+<img alt="../_images/enhancements.png" src="../_images/enhancements.png" />
+<p class="caption">The results after enhancements. Top-left: original noiseless data.
+Bottom-left: original data with added Rician noise (SNR=2). Bottom-right:
+After enhancement of noisy data. Top-right: After enhancement and sharpening
+of noisy data.</p>
+</div>
+<div class="section" id="references">
+<h2>References<a class="headerlink" href="#references" title="Permalink to this headline">¶</a></h2>
+<table class="docutils citation" frame="void" id="meesters2016-ismrm" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[Meesters2016_ISMRM]</td><td>S. Meesters, G. Sanguinetti, E. Garyfallidis,
+J. Portegies, R. Duits. (2015) Fast implementations of
+contextual PDE’s for HARDI data processing in DIPY.
+ISMRM 2016 conf. (submitted)</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="portegies2015-plosone" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[Portegies2015_PLoSOne]</td><td><em>(<a class="fn-backref" href="#id1">1</a>, <a class="fn-backref" href="#id3">2</a>)</em> J. Portegies, R. Fick, G. Sanguinetti, S. Meesters,
+G.Girard, and R. Duits. (2015) Improving Fiber
+Alignment in HARDI by Combining Contextual PDE flow
+with Constrained Spherical Deconvolution. PLoS One.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="portegies2015-ssvm" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id4">[Portegies2015_SSVM]</a></td><td>J. Portegies, G. Sanguinetti, S. Meesters, and R. Duits.
+(2015) New Approximation of a Scale Space Kernel on SE(3)
+and Applications in Neuroimaging. Fifth International
+Conference on Scale Space and Variational Methods in
+Computer Vision</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="duitsandfranken-jmiv" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id2">[DuitsAndFranken_JMIV]</a></td><td>R. Duits and E. Franken (2011) Morphological and
+Linear Scale Spaces for Fiber Enhancement in DWI-MRI.
+J Math Imaging Vis, 46(3):326-368.</td></tr>
+</tbody>
+</table>
+<table class="docutils citation" frame="void" id="rodrigueseurographics" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[RodriguesEurographics]</td><td>P. Rodrigues, R. Duits, B. Romeny, A. Vilanova
+(2010). Accelerated Diffusion Operators for Enhancing DW-MRI. Eurographics Workshop on Visual Computing for Biology and Medicine. The Eurographics Association.</td></tr>
+</tbody>
+</table>
+<div class="admonition-example-source-code admonition">
+<p class="first admonition-title">Example source code</p>
+<p class="last">You can download <a class="reference download internal" href="../_downloads/contextual_enhancement.py"><tt class="xref download docutils literal"><span class="pre">the</span> <span class="pre">full</span> <span class="pre">source</span> <span class="pre">code</span> <span class="pre">of</span> <span class="pre">this</span> <span class="pre">example</span></tt></a>.
+This same script is also included in the dipy source distribution under the
+<tt class="file docutils literal"><span class="pre">doc/examples/</span></tt> directory.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+  <li><a href="../index.html">Home</a> |&nbsp;</li>
+  <li><a href="../stateoftheart.html">Overview</a> |&nbsp;</li>
+  <li><a href="../examples_index.html">Gallery</a> |&nbsp;</li>
+  <li><a href="../installation.html">Download</a> |&nbsp;</li>
+  <li><a href="../subscribe.html">Subscribe</a> |&nbsp;</li>
+  <li><a href="../developers.html">Developers</a> |&nbsp;</li>
+  <li><a href="../cite.html">Cite</a> &nbsp;</li>
+ 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2015, dipy developers &lt;neuroimaging@python.org&gt;.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

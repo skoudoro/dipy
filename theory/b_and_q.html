@@ -1,0 +1,269 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Dipy &mdash; dipy 0.11.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/dipy.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.11.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="dipy 0.11.0 documentation" href="../index.html" />
+  <meta name="keywords" content="dipy, dMRI, DTI, DSI, diffusion MRI, Tensor,
+  neuroimaging, python, neuroscience, Eleftherios, Garyfallidis, tractography,
+  streamlines, fiber tracking">
+
+  </head>
+  <body>
+<div style="background-color: white; text-align: left; padding: 10px 10px 15px 15px">
+ <a href="../index.html">
+  <img src="../_static/dipy-banner.png" alt="dipy logo"  border="0" />
+</div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+  <li><a href="../index.html">Home</a> |&nbsp;</li>
+  <li><a href="../stateoftheart.html">Overview</a> |&nbsp;</li>
+  <li><a href="../examples_index.html">Gallery</a> |&nbsp;</li>
+  <li><a href="../installation.html">Download</a> |&nbsp;</li>
+  <li><a href="../subscribe.html">Subscribe</a> |&nbsp;</li>
+  <li><a href="../developers.html">Developers</a> |&nbsp;</li>
+  <li><a href="../cite.html">Cite</a> &nbsp;</li>
+ 
+      </ul>
+    </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+
+
+<h4> Site Navigation </h4>
+  <ul>
+    <li><a href="../documentation.html">Documentation</a></li>
+    <li><a href="../devel/index.html">Development</a></li>
+  </ul>
+
+<h4> NIPY Community </h4>
+  <ul class="simple">
+    <li><a class="reference external"
+	href="http://nipy.org/">Community Home</a></li>
+    <li><a class="reference external"
+	href="http://nipy.org/software/projects/">NIPY Projects</a></li>
+    <li><a class="reference external"
+	href="https://mail.python.org/mailman/listinfo/neuroimaging">Mailing List</a></li>
+    <li><a class="reference external"
+	href="http://nipy.org/nipy/license.html">License</a></li>
+  </ul>
+
+
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">DIY Stuff about b and q</a></li>
+<li><a class="reference internal" href="#the-b-matrix-and-siemens-dicom">The B matrix and Siemens DICOM</a></li>
+<li><a class="reference internal" href="#and-what-about-q">... and what about &#8216;q&#8217;?</a></li>
+</ul>
+
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="../_sources/theory/b_and_q.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+
+<div id="searchbox-ml" style="display: none">
+  <h3>Search mailing list archive</h3>
+  <script type="text/javascript">
+    function mlsearch(curobj)
+    {
+    curobj.q.value="site:mail.python.org/pipermail/neuroimaging/ "+curobj.userquery.value
+    }
+  </script>
+  <form action="http://www.google.com/search" method="get" onSubmit="mlsearch(this)">
+    <input name="userquery" size="13" type="text" /> <input type="submit" value="Go" />
+    <input name="q" type="hidden" />
+  </form>
+</div>
+
+<div id="searchbox-site" style="display: none">
+  <h3>Search this site</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" size="13" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox-ml').show(0);</script>
+<script type="text/javascript">$('#searchbox-site').show(0);</script>
+
+
+<script>
+     ((window.gitter = {}).chat = {}).options = {
+       room: 'nipy/dipy'
+     };
+</script>
+<script src="https://sidecar.gitter.im/dist/sidecar.v1.js" async defer></script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="diy-stuff-about-b-and-q">
+<span id="b-and-q"></span><h1>DIY Stuff about b and q<a class="headerlink" href="#diy-stuff-about-b-and-q" title="Permalink to this headline">¶</a></h1>
+<p>This is a short note to explain the nature of the <tt class="docutils literal"><span class="pre">B_matrix</span></tt> found in the
+Siemens private (CSA) fields of the DICOM headers of a diffusion weighted
+acquisition.  We trying to explain the relationship between the <tt class="docutils literal"><span class="pre">B_matrix</span></tt> and
+the <em>b value</em> and the <em>gradient vector</em>.  The acquisition is made with a planned
+(requested) <img class="math" src="../_images/math/5e87bf41a96deddf6cb485ff530f153f2590e9cc.png" alt="b"/>-value - say <img class="math" src="../_images/math/bbfcdf58b57a117124971e050f76b2d21adc4fe3.png" alt="b_{req} = 1000"/>, and with a requested gradient
+direction <img class="math" src="../_images/math/d160557712681a358a646fe448ccc1f21ceeab7a.png" alt="\mathbf{g}_{req} = [g_x, g_y, g_z]"/> (supposedly a unit vector) and
+peak amplitude <img class="math" src="../_images/math/b92c09a649305a0aef3239729d93cdf941e0e5cf.png" alt="G"/>. When the sequence runs the gradient is modulated by an
+amplitude envelope <img class="math" src="../_images/math/abfcd1976a78a2c76100f16ecc23a68b111845b7.png" alt="\rho(t)"/> with <img class="math" src="../_images/math/c026cdbdb847d457b821c6542503e412471a45e3.png" alt="\max |\rho(t)| = 1"/> so that the time course
+of the gradient is <img class="math" src="../_images/math/1af8939bbdf85b3c2ab25f0353254f3efbebeb4c.png" alt="G\rho(t)\mathbf{g}."/> <img class="math" src="../_images/math/b92c09a649305a0aef3239729d93cdf941e0e5cf.png" alt="G"/> is measured in units of <img class="math" src="../_images/math/5c4f55d1ea034acc5244436e110f747f8a6fb826.png" alt="T
+\mathrm{mm}^-1."/> This leads to an important temporal weighting parameter of the
+acquisition:</p>
+<div class="math">
+<p><img src="../_images/math/930d50e66f9afe765d0c9f566b8779c137c832b2.png" alt="R   =  \int_0^T ( \int_0^t \rho ( \tau ) \, d{ \tau } )^2 \, d{t}."/></p>
+</div><p>(See Basser, Matiello and LeBihan, 1994.) Another formulation involves
+the introduction of <cite>k-space</cite>. In standard in-plane MR image encoding</p>
+<div class="math">
+<p><img src="../_images/math/6676b42f590b8937c7372dd951293f9b4d1a644c.png" alt="\mathbf{k} = \gamma \int \mathbf{g}(t)dt."/></p>
+</div><p>For the classical Stejskal and Tanner pulsed gradient spin echo (PGSE)
+paradigm where two rectangular pulses of width <img class="math" src="../_images/math/b35a9439ad8c8657b1b1d792ad5c2d77a52c0aef.png" alt="\delta"/> seconds are
+spaced with their onsets <img class="math" src="../_images/math/296ab33356160c5a5d59477d3e898f58888f0bdb.png" alt="\Delta"/> seconds apart <img class="math" src="../_images/math/035e6f87ed346d787055620ba3a77d44b6e96e46.png" alt="R = \Delta
+(\Delta-\delta/3)^2."/> The units of <img class="math" src="../_images/math/9d86170e7de539c0ff999de09621ee0c7b6c8ed0.png" alt="R"/> are <img class="math" src="../_images/math/019a7918a356c342c793781b8420c39aeb2a48ae.png" alt="s^3"/>. The <img class="math" src="../_images/math/5e87bf41a96deddf6cb485ff530f153f2590e9cc.png" alt="b"/>-matrix has
+entries</p>
+<div class="math">
+<p><img src="../_images/math/19b582a68b2c1eeca3ca25fe4fa3da9895c76a7d.png" alt="b_{ij} = \gamma^2 G^2 g_i g_j R,"/></p>
+</div><p>where <img class="math" src="../_images/math/0ebb67342b546ca42a1c634b1ef03c893c4cdedb.png" alt="\gamma"/> is the gyromagnetic radius (units
+<img class="math" src="../_images/math/34810faa84c74193ed25d9e847e657ea6146ed04.png" alt="\mathrm{radians}.\mathrm{seconds}^{-1}.T^{-1}"/>) and <img class="math" src="../_images/math/a581f053bbfa5115f42c13094857cdd12a37ec49.png" alt="i"/> and <img class="math" src="../_images/math/d32c78b759903e3f4bd4fd2ce0b86358f7500c5d.png" alt="j"/> are
+axis direcrtions from <img class="math" src="../_images/math/975c0f20e558a0b09286b055b142fe433bb84f93.png" alt="x,y,z"/> . The units of the B-matrix are
+<img class="math" src="../_images/math/bcf320a2e58b1f52c592019a2cc2317e03ed1076.png" alt="\mathrm{radians}^2 . \mathrm{seconds} .  \mathrm{mm}^{-2}."/></p>
+<div class="math">
+<p><img src="../_images/math/eb788ef0478ee5b04438a5b8230527d0bf5976b9.png" alt="\mathbf{B} = \gamma^2 G^2 R \mathbf{g} \mathbf{g}^T."/></p>
+</div><p>The b-value for the acquisition is the trace of <img class="math" src="../_images/math/fb542518f2c3338d27234e14932fd1ab5a311d8b.png" alt="\mathbf{B}"/> and is
+given by</p>
+<div class="math">
+<p><img src="../_images/math/1ece4cbf4fe7ee2e0b6b430874abec9e4b853c84.png" alt="b = \gamma^2 G^2 R \|\mathbf{g}\|^2 = \gamma^2 G^2 R."/></p>
+</div></div>
+<div class="section" id="the-b-matrix-and-siemens-dicom">
+<h1>The B matrix and Siemens DICOM<a class="headerlink" href="#the-b-matrix-and-siemens-dicom" title="Permalink to this headline">¶</a></h1>
+<p>Though the Stejskal and Tanner formula is available for the classic
+PGSE sequence, a different sequence may be used (e.g. TRSE on Siemens
+Trio), and anyway the ramps up and down on the gradient field will not
+be rectangular. The Siemens scanner software calculates the actual
+values of the <img class="math" src="../_images/math/c0ed827e5788f08b1d6eefce8acb2681c74c38ae.png" alt="b_{ij}"/> by numerical integration of the formula above
+for <img class="math" src="../_images/math/9d86170e7de539c0ff999de09621ee0c7b6c8ed0.png" alt="R"/>. These values are in the form of the 6 &#8216;B-matrix&#8217; values
+<img class="math" src="../_images/math/c579c87770f42fc5f6912bf7c2dcc22622d0c0e5.png" alt="[b_{xx}, b_{xy}, b_{xz}, b_{yy}, b_{yz}, b_{zz}]"/>.</p>
+<p>In this form they are suitable for use in a least squares estimation of
+the diffusion tensor via the equations across the set of acquisitions:</p>
+<div class="math">
+<p><img src="../_images/math/a91e14b8340a8f4280d1145e4b58bfcfc92cd23a.png" alt="\log(A(\mathbf{q})/A(0)) = -(b_{xx}D_{xx} + 2b_{xy}D_{xy} + 2b_{xz}D_{xz} + \
+   b_{yy}D_{yy} + 2b_{yz}D_{yz} + b_{zz}D_{zz})"/></p>
+</div><p>The gradient field typically stays in the one gradient direction, in
+this case the relationship between <img class="math" src="../_images/math/5e87bf41a96deddf6cb485ff530f153f2590e9cc.png" alt="b"/>, <img class="math" src="../_images/math/44cfef0a87943444f7d88fe77a9df36ba6986b11.png" alt="\mathbf{g}"/> and the <img class="math" src="../_images/math/c0ed827e5788f08b1d6eefce8acb2681c74c38ae.png" alt="b_{ij}"/> is as
+follows. If we fill out the symmetric B-matrix as:</p>
+<div class="math">
+<p><img src="../_images/math/c9140a26c84a0b4fb538da84f4729ebde2e38696.png" alt="\mathbf{B} = \begin{pmatrix}
+              b_{xx} &amp; b_{yx} &amp; b_{yz}\\
+              b_{xy} &amp; b_{yy} &amp; b_{xz}\\
+              b_{xz} &amp; b_{yz} &amp; b_{zz}
+              \end{pmatrix}"/></p>
+</div><p>then <img class="math" src="../_images/math/fb542518f2c3338d27234e14932fd1ab5a311d8b.png" alt="\mathbf{B}"/> is equal to the rank 1 tensor <img class="math" src="../_images/math/f27215cffb142cdb0e894a8f3355f39c459ab8d3.png" alt="\gamma^2 G^2 R
+\mathbf{g} \mathbf{g}^T"/>. By performing an eigenvalue and
+eigenvector decomposition of <img class="math" src="../_images/math/fb542518f2c3338d27234e14932fd1ab5a311d8b.png" alt="\mathbf{B}"/> we obtain</p>
+<div class="math">
+<p><img src="../_images/math/83a4646e1522792803ece2e4a0b6cac67c3bbe28.png" alt="\mathbf{B} = \lambda_1\mathbf{v}_1\mathbf{v}_1^T +
+             \lambda_2\mathbf{v}_2\mathbf{v}_2^T +
+             \lambda_3\mathbf{v}_3\mathbf{v}_3^T,"/></p>
+</div><p>where only one of the <img class="math" src="../_images/math/3b765ea6939f1eba2541e91f870cb3c078aa29be.png" alt="\lambda_i"/>, say <img class="math" src="../_images/math/18cbd415b1a8e3f19977c5d04d046d41c585c7de.png" alt="\lambda_1"/>, is (effectively)
+non-zero. (Because the gradient is always a multiple of a constant
+direction <img class="math" src="../_images/math/fb542518f2c3338d27234e14932fd1ab5a311d8b.png" alt="\mathbf{B}"/> is a effectively a rank 1 tensor.) Then
+<img class="math" src="../_images/math/d9204aa93e2a4350ba837a5582e7f7a81213f560.png" alt="\mathbf{g} = \pm\mathbf{v}_1"/>, and <img class="math" src="../_images/math/26e953acda7b094a1b9cbefe2a36f57fc17e6fcf.png" alt="b = \gamma^2 G^2 R =
+\lambda_1"/>. The <tt class="docutils literal"><span class="pre">b-vector</span></tt> <img class="math" src="../_images/math/dd6a0c79ee7e76c8e6f1310a5d171d5b3848b685.png" alt="\mathbf{b}"/> is given by:</p>
+<div class="math">
+<p><img src="../_images/math/65f540a75b86f36385a34577ff12acd1fd6e747e.png" alt="\mathbf{b}_{\mathrm{actual}} = \gamma^2 G^2 R \mathbf{g}_{\mathrm{actual}}
+ = \lambda_1 \mathbf{v}_1."/></p>
+</div><p>Once we have <img class="math" src="../_images/math/6a08c04337caa3ff668bcf37b77af622667483d3.png" alt="\mathbf{b}_{actual}"/> we can calculate <img class="math" src="../_images/math/ca05f221ecc13aa98f74d5bbfa919cbf318722dc.png" alt="b_{actual} =
+\|\mathbf{b}_{actual}\|"/> and <img class="math" src="../_images/math/9119dff3ba1cb747c340c911bc0d5328c3a03820.png" alt="\mathbf{g}_{actual} = \mathbf{b}_{actual}
+/ b_{actual}"/>. Various sofware packages (e.g. FSL&#8217;s DFT-DTIFIT) expect
+to get N x 3 and N x 1 arrays of <img class="math" src="../_images/math/f403591003ae6162f7ffd9f44294517e9c0ce280.png" alt="\mathbf{g}_{actual}"/> (<tt class="docutils literal"><span class="pre">bvecs</span></tt>) and
+<img class="math" src="../_images/math/2fc19b6a7d99f2137d50a532fe9bc1a48f1364d1.png" alt="b_{actual}"/> values (<tt class="docutils literal"><span class="pre">bvals</span></tt>) as their inputs.</p>
+</div>
+<div class="section" id="and-what-about-q">
+<h1>... and what about &#8216;q&#8217;?<a class="headerlink" href="#and-what-about-q" title="Permalink to this headline">¶</a></h1>
+<p>Callaghan, Eccles and Xia (1988) showed that the signal from the
+narrow pulse PGSE paradigm measured the Fourier transform of the
+diffusion displacement propagator. Propagation space is measured in
+displacement per unit time <img class="math" src="../_images/math/03c42d4ba7cf6b579b14deb59f45b4a83bab2a5c.png" alt="(\mathrm{mm}.\mathrm{seconds}^{-1})"/>. They
+named the reciprocal space <tt class="docutils literal"><span class="pre">q-space</span></tt> with units of
+<img class="math" src="../_images/math/1ac7c0c2bfefb29835640fb332ea83fe467f1ac2.png" alt="\mathrm{seconds}.\mathrm{mm}^{-1}"/>.</p>
+<div class="math">
+<p><img src="../_images/math/bba18ff6b1b31daa67b6ae64be92b54be814f4c6.png" alt="q = \gamma \delta G /{2\pi}"/></p>
+</div><div class="math">
+<p><img src="../_images/math/8533244c1adeeed5ec1d8dc79a756deee395329f.png" alt="b = 4 \pi^2 q^2 \Delta"/></p>
+</div><p>Diffusion spectroscopy measures signal over a wide range of <img class="math" src="../_images/math/5e87bf41a96deddf6cb485ff530f153f2590e9cc.png" alt="b"/>-values
+(or <img class="math" src="../_images/math/23f1b45408e5b4130c0f940fcbfcec54492cbdcd.png" alt="q"/>-values) and diffusion times (<img class="math" src="../_images/math/296ab33356160c5a5d59477d3e898f58888f0bdb.png" alt="\Delta"/>) and performs a <img class="math" src="../_images/math/23f1b45408e5b4130c0f940fcbfcec54492cbdcd.png" alt="q"/>-space
+analysis (Fourier transform of the diffusion signal decay).</p>
+<p>There remains a bit of mystery as to how <img class="math" src="../_images/math/dd9f8e4fa6ad795780215243cbd5a5719b772ad3.png" alt="\mathbf{q}"/> (as a vector in
+<img class="math" src="../_images/math/23f1b45408e5b4130c0f940fcbfcec54492cbdcd.png" alt="q"/>-space) is specified for other paradigms. We think that (a) it only
+matters up to a scale factor, and (b) we can loosely identify
+<img class="math" src="../_images/math/dd9f8e4fa6ad795780215243cbd5a5719b772ad3.png" alt="\mathbf{q}"/> with <img class="math" src="../_images/math/5cc4203e47af254c17d95657c32bea695033369f.png" alt="b\mathbf{g}"/>, where <img class="math" src="../_images/math/44cfef0a87943444f7d88fe77a9df36ba6986b11.png" alt="\mathbf{g}"/> is the unit
+vector in the gradient direction.</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+  <li><a href="../index.html">Home</a> |&nbsp;</li>
+  <li><a href="../stateoftheart.html">Overview</a> |&nbsp;</li>
+  <li><a href="../examples_index.html">Gallery</a> |&nbsp;</li>
+  <li><a href="../installation.html">Download</a> |&nbsp;</li>
+  <li><a href="../subscribe.html">Subscribe</a> |&nbsp;</li>
+  <li><a href="../developers.html">Developers</a> |&nbsp;</li>
+  <li><a href="../cite.html">Cite</a> &nbsp;</li>
+ 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2008-2015, dipy developers &lt;neuroimaging@python.org&gt;.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>
