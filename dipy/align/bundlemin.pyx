@@ -211,7 +211,7 @@ def _bundle_minimum_distance(double [:, ::1] stat,
                                        &mov[j * rows, 0], rows)
 
                 if have_openmp:
-                    openmp.omp_set_lock(&lock)
+                    openmp.omp_test_lock(&lock)
                 if tmp < min_j[i]:
                     min_j[i] = tmp
 
