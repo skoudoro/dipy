@@ -1,37 +1,83 @@
-build: off
+# vim ft=yaml
+# CI on Windows via appveyor
+# arch option: x86 | ia64 | amd64 | x86_amd64 | x86_ia64
 
 environment:
+  global:
+      # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
+      # /E:ON and /V:ON options are not enabled in the batch script interpreter
+      # See: http://stackoverflow.com/a/13751649/163740
+      CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\appveyor\\run_with_env.cmd"
   matrix:
-    - PYTHON: "C:\\Python27"
-      PYTHON_VERSION: "2.7"
-      MINICONDA: C:\Miniconda36-x64
-
-    - PYTHON: "C:\\Python36"
-      PYTHON_VERSION: "3.6"
-      MINICONDA: C:\Miniconda36-x64
+    # - PYTHON: "C:\\Miniconda"  # Conda 2.7 32-bit
+    - PYTHON: "C:\\Miniconda-x64"  # Conda 2.7 64-bit
+    - PYTHON: C:\Python35
+    - PYTHON: C:\Python35-x64
+    - PYTHON: C:\Python36
+    - PYTHON: C:\Python36-x64
 
 platform:
     - x64
 
+matrix:
+  # build fail immediately once one of the job fails
+  fast_finish: true
+
 init:
-  - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH% %MINICONDA%"
   - systeminfo
+  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
 install:
-  - "set PATH=%MINICONDA%;%MINICONDA%\\Scripts;%PATH%"
-  - conda config --set always_yes yes --set changeps1 no
-  - conda update -q conda
-  - conda info -a
-  - "conda create -q -n test-environment python=%PYTHON_VERSION% cython numpy scipy matplotlib h5py scikit-learn nose"
-  - activate test-environment
-  - pip install coverage nibabel
-  - python setup.py build_ext --inplace
+  # If there is a newer build queued for the same PR, cancel this one.
+  # The AppVeyor 'rollout builds' option is supposed to serve the same
+  # purpose but is problematic because it tends to cancel builds pushed
+  # directly to master instead of just PR builds.
+  # credits: JuliaLang developers.
+  - ps: if ($env:APPVEYOR_PULL_REQUEST_NUMBER -and $env:APPVEYOR_BUILD_NUMBER -ne ((Invoke-RestMethod `
+        https://ci.appveyor.com/api/projects/$env:APPVEYOR_ACCOUNT_NAME/$env:APPVEYOR_PROJECT_SLUG/history?recordsNumber=50).builds | `
+        Where-Object pullRequestId -eq $env:APPVEYOR_PULL_REQUEST_NUMBER)[0].buildNumber) { `
+        throw "There are newer queued builds for this pull request, failing early." }
+
+  - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+
+  # Check that we have the expected version and architecture for Python
+  - "python --version"
+  - ps: $env:PYTHON_ARCH = python -c "import struct; print(struct.calcsize('P') * 8)"
+  - ps: $env:PYTHON_VERSION = python -c "import platform;print(platform.python_version())"
+  - cmd: echo %PYTHON_VERSION% %PYTHON_ARCH%
+
+  - ps: |
+        if($env:PYTHON -match "conda")
+        {
+          conda update -yq conda
+          conda install -yq cython pip numpy scipy h5py matplotlib scikit-learn
+        }
+        else
+        {
+          python -m pip install -U pip
+          pip --version
+          pip install -r requirements.txt
+          pip install matplotlib scikit-learn
+        }
+
+  - "%CMD_IN_ENV% pip install nibabel"
+  - "%CMD_IN_ENV% python setup.py build_ext --inplace"
+  - "%CMD_IN_ENV% pip install --user -e ."
+
+build: false # Not a C# project, build stuff at the test step instead.
 
 test_script:
-  - nosetests --verbose
-  
+  - pip install nose coverage
+  - mkdir for_testing
+  - cd for_testing
+  - echo backend:Agg > matplotlibrc
+  - nosetests --with-doctest --verbose dipy
+  - cd ..
+
+on_success:
+  - coveralls
+  - codecov
+
 cache:
-  # Use the appveyor cache to avoid re-downloading large archives such
-  # the MKL numpy and scipy wheels mirrored on a rackspace cloud
-  # container, speed up the appveyor jobs and reduce bandwidth
-  # usage on our rackspace account.
+  # Avoid re-downloading large packages
   - '%APPDATA%\pip\Cache'
