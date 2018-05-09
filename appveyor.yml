@@ -1,6 +1,5 @@
 # vim ft=yaml
 # CI on Windows via appveyor
-# arch option: x86 | ia64 | amd64 | x86_amd64 | x86_ia64
 
 environment:
   global:
@@ -9,19 +8,21 @@ environment:
       # See: http://stackoverflow.com/a/13751649/163740
       CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\appveyor\\run_with_env.cmd"
   matrix:
-    # - PYTHON: "C:\\Miniconda"  # Conda 2.7 32-bit
-    - PYTHON: "C:\\Miniconda-x64"  # Conda 2.7 64-bit
+    # - PYTHON: C:\Python27
+    - PYTHON: C:\Python27-x64
     - PYTHON: C:\Python35
     - PYTHON: C:\Python35-x64
     - PYTHON: C:\Python36
     - PYTHON: C:\Python36-x64
+    # - PYTHON: "C:\\Miniconda36"  # Conda 3.6 32-bit
+    - PYTHON: "C:\\Miniconda36-x64"  # Conda 3.6 64-bit
 
 platform:
     - x64
 
-matrix:
+# matrix:
   # build fail immediately once one of the job fails
-  fast_finish: true
+  # fast_finish: true
 
 init:
   - systeminfo
