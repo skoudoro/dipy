@@ -72,7 +72,7 @@ test_script:
   - mkdir for_testing
   - cd for_testing
   - echo backend:Agg > matplotlibrc
-  - nosetests --with-doctest --verbose dipy
+  - nosetests --verbose dipy
   - cd ..
 
 on_success:
