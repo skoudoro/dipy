@@ -10,12 +10,13 @@ environment:
   matrix:
     # - PYTHON: C:\Python27
     - PYTHON: C:\Python27-x64
-    - PYTHON: C:\Python35
-    - PYTHON: C:\Python35-x64
-    - PYTHON: C:\Python36
-    - PYTHON: C:\Python36-x64
+    # - PYTHON: C:\Python35
+    # - PYTHON: C:\Python35-x64
+    # - PYTHON: C:\Python36
+    # - PYTHON: C:\Python36-x64
     # - PYTHON: "C:\\Miniconda36"  # Conda 3.6 32-bit
     - PYTHON: "C:\\Miniconda36-x64"  # Conda 3.6 64-bit
+      COVERAGE: 1
 
 platform:
     - x64
@@ -52,6 +53,7 @@ install:
         {
           conda update -yq conda
           conda install -yq cython pip numpy scipy h5py matplotlib scikit-learn
+          pip install nibabel
         }
         else
         {
@@ -61,7 +63,6 @@ install:
           pip install matplotlib scikit-learn
         }
 
-  - "%CMD_IN_ENV% pip install nibabel"
   - "%CMD_IN_ENV% python setup.py build_ext --inplace"
   - "%CMD_IN_ENV% pip install --user -e ."
 
@@ -72,11 +73,15 @@ test_script:
   - mkdir for_testing
   - cd for_testing
   - echo backend:Agg > matplotlibrc
-  - nosetests --verbose dipy
-  - cd ..
+  - if exist .coveragerc (cp ../.coveragerc .) else (echo no .coveragerc)
+  - ps: |
+        if ($env:COVERAGE)
+        {
+          $env:COVER_ARGS = "--with-coverage --cover-package dipy"
+        }
+  - nosetests --with-doctest --verbose %COVER_ARGS% dipy
 
-on_success:
-  - coveralls
+after_test:
   - codecov
 
 cache:
