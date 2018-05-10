@@ -6,16 +6,27 @@ environment:
       # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
       # /E:ON and /V:ON options are not enabled in the batch script interpreter
       # See: http://stackoverflow.com/a/13751649/163740
-      CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\appveyor\\run_with_env.cmd"
+      CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\tools\\run_with_env.cmd"
+      DEPENDS: "cython numpy scipy matplotlib h5py nibabel cvxpy"
+      INSTALL_TYPE: "requirements"
+      EXTRA_WHEELS: "https://5cf40426d9f06eb7461d-6fe47d9331aba7cd62fc36c7196769e4.ssl.cf2.rackcdn.com"
+      PRE_WHEELS: "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com"
+      EXTRA_PIP_FLAGS: "--timeout=60 --find-links=%EXTRA_WHEELS%"
+
   matrix:
     # - PYTHON: C:\Python27
     - PYTHON: C:\Python27-x64
-    # - PYTHON: C:\Python35
-    # - PYTHON: C:\Python35-x64
-    # - PYTHON: C:\Python36
-    # - PYTHON: C:\Python36-x64
+    - PYTHON: C:\Python35-x64
+    - PYTHON: C:\Python36
+    - PYTHON: C:\Python36-x64
+    - PYTHON: C:\Python36-x64
+      USE_VTK: 1
+    - PYTHON: C:\Python36-x64
+      USE_VTK: 1
+      USE_PRE: 1
     # - PYTHON: "C:\\Miniconda36"  # Conda 3.6 32-bit
     - PYTHON: "C:\\Miniconda36-x64"  # Conda 3.6 64-bit
+      DEPENDS: "cython numpy scipy matplotlib h5py"
       COVERAGE: 1
 
 platform:
@@ -41,6 +52,12 @@ install:
         throw "There are newer queued builds for this pull request, failing early." }
 
   - "set PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+  - ps: $env:PIPI = "pip install $env:EXTRA_PIP_FLAGS"
+  - ps: |
+        if ($env:USE_PRE)
+        {
+          $env:PIPI = "$env:PIPI --find-links=$env:PRE_WHEELS --pre";
+        }
 
   # Check that we have the expected version and architecture for Python
   - "python --version"
@@ -49,27 +66,42 @@ install:
   - cmd: echo %PYTHON_VERSION% %PYTHON_ARCH%
 
   - ps: |
+        if($env:USE_VTK)
+        {
+          $env:DEPENDS = "$env:DEPENDS vtk"
+        }
+
+  - ps: |
         if($env:PYTHON -match "conda")
         {
           conda update -yq conda
-          conda install -yq cython pip numpy scipy h5py matplotlib scikit-learn
-          pip install nibabel
+          conda install -yq  pip %DEPENDS%
+          pip install nibabel, cvxpy scikit-learn
         }
         else
         {
           python -m pip install -U pip
           pip --version
-          pip install -r requirements.txt
-          pip install matplotlib scikit-learn
+
+          if($env:INSTALL_TYPE -match "conda")
+          {
+            $env:PIPI install -r requirements.txt
+          }
+          else
+          {
+            $env:PIPI install $env:DEPENDS
+          }
+
+          $env:PIPI install matplotlib scikit-learn cvxpy
         }
 
   - "%CMD_IN_ENV% python setup.py build_ext --inplace"
-  - "%CMD_IN_ENV% pip install --user -e ."
+  - "%CMD_IN_ENV% $env:PIPI install --user -e ."
 
 build: false # Not a C# project, build stuff at the test step instead.
 
 test_script:
-  - pip install nose coverage
+  - pip install nose coverage coveralls codecov
   - mkdir for_testing
   - cd for_testing
   - echo backend:Agg > matplotlibrc
@@ -83,7 +115,12 @@ test_script:
   - nosetests --with-doctest --verbose %COVER_ARGS% dipy
 
 after_test:
-  - codecov
+   - ps: |
+         if ($env:COVERAGE)
+         {
+            coveralls
+            codecov
+         }
 
 cache:
   # Avoid re-downloading large packages
