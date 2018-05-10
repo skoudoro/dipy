@@ -85,14 +85,14 @@ install:
 
           if($env:INSTALL_TYPE -match "conda")
           {
-            $env:PIPI -r requirements.txt
+            "$env:PIPI -r requirements.txt"
           }
           else
           {
-            $env:PIPI $env:DEPENDS
+            "$env:PIPI $env:DEPENDS"
           }
 
-          $env:PIPI matplotlib scikit-learn cvxpy
+          "$env:PIPI matplotlib scikit-learn cvxpy"
         }
 
   - "%CMD_IN_ENV% python setup.py build_ext --inplace"
