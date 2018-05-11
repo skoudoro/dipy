@@ -75,7 +75,7 @@ install:
         if($env:PYTHON -match "conda")
         {
           conda update -yq conda
-          conda install -yq  pip %DEPENDS%
+          conda install -yq  pip $env:DEPENDS
           pip install nibabel, cvxpy scikit-learn
         }
         else
@@ -85,18 +85,18 @@ install:
 
           if($env:INSTALL_TYPE -match "conda")
           {
-            "$env:PIPI -r requirements.txt"
+            Invoke-Expression "$env:PIPI -r requirements.txt"
           }
           else
           {
-            "$env:PIPI $env:DEPENDS"
+            Invoke-Expression "$env:PIPI $env:DEPENDS"
           }
 
-          "$env:PIPI matplotlib scikit-learn cvxpy"
+          Invoke-Expression "$env:PIPI matplotlib scikit-learn cvxpy"
         }
 
   - "%CMD_IN_ENV% python setup.py build_ext --inplace"
-  - "%CMD_IN_ENV% $env:PIPI --user -e ."
+  - "%CMD_IN_ENV% %PIPI% --user -e ."
 
 build: false # Not a C# project, build stuff at the test step instead.
 
