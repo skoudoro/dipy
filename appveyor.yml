@@ -7,7 +7,7 @@ environment:
       # /E:ON and /V:ON options are not enabled in the batch script interpreter
       # See: http://stackoverflow.com/a/13751649/163740
       CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\tools\\run_with_env.cmd"
-      DEPENDS: "cython numpy scipy matplotlib h5py nibabel cvxpy"
+      DEPENDS: "cython numpy scipy matplotlib h5py"
       INSTALL_TYPE: "requirements"
       EXTRA_WHEELS: "https://5cf40426d9f06eb7461d-6fe47d9331aba7cd62fc36c7196769e4.ssl.cf2.rackcdn.com"
       PRE_WHEELS: "https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com"
@@ -21,12 +21,12 @@ environment:
     - PYTHON: C:\Python36-x64
     - PYTHON: C:\Python36-x64
       USE_VTK: 1
+      INSTALL_TYPE: "pip"
     - PYTHON: C:\Python36-x64
       USE_VTK: 1
       USE_PRE: 1
     # - PYTHON: "C:\\Miniconda36"  # Conda 3.6 32-bit
     - PYTHON: "C:\\Miniconda36-x64"  # Conda 3.6 64-bit
-      DEPENDS: "cython numpy scipy matplotlib h5py"
       COVERAGE: 1
 
 platform:
@@ -76,14 +76,14 @@ install:
         {
           conda update -yq conda
           conda install -yq  pip $env:DEPENDS
-          pip install nibabel, cvxpy scikit-learn
+          pip install nibabel cvxpy scikit-learn
         }
         else
         {
           python -m pip install -U pip
           pip --version
 
-          if($env:INSTALL_TYPE -match "conda")
+          if($env:INSTALL_TYPE -match "requirements")
           {
             Invoke-Expression "$env:PIPI -r requirements.txt"
           }
@@ -92,7 +92,7 @@ install:
             Invoke-Expression "$env:PIPI $env:DEPENDS"
           }
 
-          Invoke-Expression "$env:PIPI matplotlib scikit-learn cvxpy"
+          Invoke-Expression "$env:PIPI nibabel matplotlib scikit-learn cvxpy"
         }
 
   - "%CMD_IN_ENV% python setup.py build_ext --inplace"
