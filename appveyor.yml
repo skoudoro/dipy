@@ -15,13 +15,13 @@ environment:
 
   matrix:
     # - PYTHON: C:\Python27
-    - PYTHON: C:\Python27-x64
-    - PYTHON: C:\Python35-x64
-    - PYTHON: C:\Python36
-    - PYTHON: C:\Python36-x64
-    - PYTHON: C:\Python36-x64
+#    - PYTHON: C:\Python27-x64
+#    - PYTHON: C:\Python35-x64
+#    - PYTHON: C:\Python36
+#    - PYTHON: C:\Python36-x64
+#    - PYTHON: C:\Python36-x64
       # USE_VTK: 1
-      INSTALL_TYPE: "pip"
+#      INSTALL_TYPE: "pip"
     - PYTHON: C:\Python36-x64
       # USE_VTK: 1
       USE_PRE: 1
@@ -59,6 +59,7 @@ install:
           $env:PIPI = "$env:PIPI --find-links=$env:PRE_WHEELS --pre";
         }
 
+  - echo %PIPI%
   # Check that we have the expected version and architecture for Python
   - "python --version"
   - ps: $env:PYTHON_ARCH = python -c "import struct; print(struct.calcsize('P') * 8)"
@@ -75,7 +76,7 @@ install:
         if($env:PYTHON -match "conda")
         {
           conda update -yq conda
-          conda install -yq  pip "$env:DEPENDS"
+          Invoke-Expression "conda install -yq  pip $env:DEPENDS"
           pip install nibabel cvxpy scikit-learn
         }
         else
