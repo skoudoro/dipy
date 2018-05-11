@@ -15,19 +15,19 @@ environment:
 
   matrix:
     # - PYTHON: C:\Python27
-#    - PYTHON: C:\Python27-x64
-#    - PYTHON: C:\Python35-x64
-#    - PYTHON: C:\Python36
-#    - PYTHON: C:\Python36-x64
-#    - PYTHON: C:\Python36-x64
-      # USE_VTK: 1
-#      INSTALL_TYPE: "pip"
+    - PYTHON: C:\Python27-x64
+    - PYTHON: C:\Python35-x64
+    - PYTHON: C:\Python36
     - PYTHON: C:\Python36-x64
-      # USE_VTK: 1
-      USE_PRE: 1
-    # - PYTHON: "C:\\Miniconda36"  # Conda 3.6 32-bit
-    - PYTHON: "C:\\Miniconda36-x64"  # Conda 3.6 64-bit
+    - PYTHON: C:\Python36-x64
+      INSTALL_TYPE: "pip"
       COVERAGE: 1
+    - PYTHON: C:\Python36-x64
+#      # USE_VTK: 1
+#      USE_PRE: 1
+#    # - PYTHON: "C:\\Miniconda36"  # Conda 3.6 32-bit
+#    - PYTHON: "C:\\Miniconda36-x64"  # Conda 3.6 64-bit
+#      COVERAGE: 1
 
 platform:
     - x64
@@ -66,6 +66,7 @@ install:
   - ps: $env:PYTHON_VERSION = python -c "import platform;print(platform.python_version())"
   - cmd: echo %PYTHON_VERSION% %PYTHON_ARCH%
 
+  # No headless window (like xvfb), so we comment this.
   # - ps: |
   #       if($env:USE_VTK)
   #       {
