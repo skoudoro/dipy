@@ -16,13 +16,14 @@ environment:
   matrix:
     # - PYTHON: C:\Python27
     - PYTHON: C:\Python27-x64
+    - PYTHON: C:\Python35
     - PYTHON: C:\Python35-x64
     - PYTHON: C:\Python36
     - PYTHON: C:\Python36-x64
     - PYTHON: C:\Python36-x64
       INSTALL_TYPE: "pip"
       COVERAGE: 1
-    - PYTHON: C:\Python36-x64
+#    - PYTHON: C:\Python36-x64
 #      # USE_VTK: 1
 #      USE_PRE: 1
 #    # - PYTHON: "C:\\Miniconda36"  # Conda 3.6 32-bit
@@ -116,13 +117,13 @@ test_script:
   - cmd: echo %COVER_ARGS%
   - nosetests --with-doctest --verbose %COVER_ARGS% dipy
 
-after_test:
-   - ps: |
-         if ($env:COVERAGE)
-         {
-            coveralls
-            codecov
-         }
+# after_test:
+#    - ps: |
+#          if ($env:COVERAGE)
+#          {
+#             coveralls
+#             codecov
+#          }
 
 cache:
   # Avoid re-downloading large packages
