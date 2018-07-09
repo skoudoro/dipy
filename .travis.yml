@@ -88,6 +88,8 @@ before_install:
     - $PIPI --upgrade pip setuptools
     - $PIPI nose;
     - $PIPI numpy;
+    - py_include=$(python -c "from disutils import sysconfig; print(sysconfig.get_python_inc())")
+    - pylib=$(ldd python | grep $PREFIX | grep 'libpython.*\so' | cut -d' ' -f3)
     - if [ -n "$DEPENDS" ]; then $PIPI $DEPENDS; fi
     - if [ "${COVERAGE}" == "1" ]; then pip install coverage coveralls codecov; fi
     - if [ "${VTK}" == "1" ]; then
