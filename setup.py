@@ -101,6 +101,7 @@ for modulename, other_sources, language in (
         ('dipy.align.bundlemin', [], 'c'),
         ('dipy.align.transforms', [], 'c'),
         ('dipy.align.parzenhist', [], 'c'),
+        ('dipy.align.ssdmetric', [], 'c'),
         ('dipy.utils.omp', [], 'c'),
         ('dipy.utils.fast_numpy', [], 'c')):
     pyx_src = pjoin(*modulename.split('.')) + '.pyx'

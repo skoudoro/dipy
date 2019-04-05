@@ -13,7 +13,7 @@ from dipy.data import fetch_stanford_hardi, read_stanford_hardi
 from dipy.data.fetcher import fetch_syn_data, read_syn_data
 from dipy.align.imaffine import (transform_centers_of_mass,
                                  AffineMap,
-                                 MutualInformationMetric,
+                                 MutualInformationMetric,SumSquareDifferenceMetric,
                                  AffineRegistration)
 from dipy.align.transforms import (TranslationTransform3D,
                                    RigidTransform3D,
@@ -116,7 +116,7 @@ None instead of an integer
 
 nbins = 32
 sampling_prop = None
-metric = MutualInformationMetric(nbins, sampling_prop)
+metric = SumSquareDifferenceMetric(sampling_prop)
 
 """
 To avoid getting stuck at local optima, and to accelerate convergence, we use a

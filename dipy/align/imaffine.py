@@ -54,6 +54,8 @@ from dipy.align import VerbosityLevels
 from dipy.align.parzenhist import (ParzenJointHistogram,
                                    sample_domain_regular,
                                    compute_parzen_mi)
+
+from dipy.align.ssdmetric import (SSDMetric,compute_ssd_mi_2d,compute_ssd_mi_3d)
 from dipy.align.imwarp import (get_direction_and_spacings, ScaleSpace)
 from dipy.align.scalespace import IsotropicScaleSpace
 from warnings import warn
@@ -778,6 +780,316 @@ class MutualInformationMetric(object):
         except (AffineInversionError, AffineInvalidValuesError):
             return np.inf, 0 * self.metric_grad
         return -1 * self.metric_val, -1 * self.metric_grad
+
+class SumSquareDifferenceMetric(object):
+
+    def __init__(self, sampling_proportion=None):
+        r""" Initializes an instance of the sum square difference metric
+
+        This class implements the methods required by Optimizer to drive the
+        registration process.
+
+        Parameters
+        ----------
+        sampling_proportion : None or float in interval (0, 1], optional
+            There are two types of sampling: dense and sparse. Dense sampling
+            uses all voxels for estimating the (joint and marginal) intensity
+            histograms, while sparse sampling uses a subset of them. If
+            `sampling_proportion` is None, then dense sampling is
+            used. If `sampling_proportion` is a floating point value in (0,1]
+            then sparse sampling is used, where `sampling_proportion`
+            specifies the proportion of voxels to be used. The default is
+            None.
+
+        Notes
+        -----
+        Since we use linear interpolation, images are not, in general,
+        differentiable at exact voxel coordinates, but they are differentiable
+        between voxel coordinates. When using sparse sampling, selected voxels
+        are slightly moved by adding a small random displacement within one
+        voxel to prevent sampling points from being located exactly at voxel
+        coordinates. When using dense sampling, this random displacement is
+        not applied.
+        """
+        self.ssd_metric_obj = SSDMetric() 
+        self.sampling_proportion = sampling_proportion
+        self.metric_val = None
+        self.metric_grad = None
+
+    def setup(self, transform, static, moving, static_grid2world=None,
+              moving_grid2world=None, starting_affine=None):
+        r""" Prepares the metric to compute intensity densities and gradients
+
+        
+        Parameters
+        ----------
+        transform: instance of Transform
+            the transformation with respect to whose parameters the gradient
+            must be computed
+        static : array, shape (S, R, C) or (R, C)
+            static image
+        moving : array, shape (S', R', C') or (R', C')
+            moving image. The dimensions of the static (S, R, C) and moving
+            (S', R', C') images do not need to be the same.
+        static_grid2world : array (dim+1, dim+1), optional
+            the grid-to-space transform of the static image. The default is
+            None, implying the transform is the identity.
+        moving_grid2world : array (dim+1, dim+1)
+            the grid-to-space transform of the moving image. The default is
+            None, implying the spacing along all axes is 1.
+        starting_affine : array, shape (dim+1, dim+1), optional
+            the pre-aligning matrix (an affine transform) that roughly aligns
+            the moving image towards the static image. If None, no
+            pre-alignment is performed. If a pre-alignment matrix is available,
+            it is recommended to provide this matrix as `starting_affine`
+            instead of manually transforming the moving image to reduce
+            interpolation artifacts. The default is None, implying no
+            pre-alignment is performed.
+        """
+        n = transform.get_number_of_parameters()
+        self.metric_grad = np.zeros(n, dtype=np.float64)
+        self.dim = len(static.shape)
+        if moving_grid2world is None:
+            moving_grid2world = np.eye(self.dim + 1)
+        if static_grid2world is None:
+            static_grid2world = np.eye(self.dim + 1)
+        self.transform = transform
+        self.static = np.array(static).astype(np.float64)
+        self.moving = np.array(moving).astype(np.float64)
+        self.static_grid2world = static_grid2world
+        self.static_world2grid = npl.inv(static_grid2world)
+        self.moving_grid2world = moving_grid2world
+        self.moving_world2grid = npl.inv(moving_grid2world)
+        self.static_direction, self.static_spacing = \
+            get_direction_and_spacings(static_grid2world, self.dim)
+        self.moving_direction, self.moving_spacing = \
+            get_direction_and_spacings(moving_grid2world, self.dim)
+        self.starting_affine = starting_affine
+
+        P = np.eye(self.dim + 1)
+        if self.starting_affine is not None:
+            P = self.starting_affine
+
+        self.affine_map = AffineMap(P, static.shape, static_grid2world,
+                                    moving.shape, moving_grid2world)
+
+        if self.dim == 2:
+            self.interp_method = vf.interpolate_scalar_2d
+        else:
+            self.interp_method = vf.interpolate_scalar_3d
+
+        if self.sampling_proportion is None:
+            self.samples = None
+            self.ns = 0
+        else:
+            k = int(np.ceil(1.0 / self.sampling_proportion))
+            shape = np.array(static.shape, dtype=np.int32)
+            self.samples = sample_domain_regular(k, shape, static_grid2world)
+            self.samples = np.array(self.samples)
+            self.ns = self.samples.shape[0]
+            # Add a column of ones (homogeneous coordinates)
+            self.samples = np.hstack((self.samples, np.ones(self.ns)[:, None]))
+            if self.starting_affine is None:
+                self.samples_prealigned = self.samples
+            else:
+                self.samples_prealigned = \
+                    self.starting_affine.dot(self.samples.T).T
+            # Sample the static image
+            static_p = self.static_world2grid.dot(self.samples.T).T
+            static_p = static_p[..., :self.dim]
+            self.static_vals, inside = self.interp_method(static, static_p)
+            self.static_vals = np.array(self.static_vals, dtype=np.float64)
+        self.ssd_metric_obj.setup(self.static, self.moving)
+
+    def _update_delta(self):
+        r""" Updates the delta according to the current affine transform
+
+        The current affine transform is given by `self.affine_map`, which
+        must be set before calling this method.
+
+        Returns
+        -------
+        static_values: array, shape(n,) if sparse sampling is being used,
+                       array, shape(S, R, C) or (R, C) if dense sampling
+            the intensity values corresponding to the static image used to
+            update the histogram. If sparse sampling is being used, then
+            it is simply a sequence of scalars, obtained by sampling the static
+            image at the `n` sampling points. If dense sampling is being used,
+            then the intensities are given directly by the static image,
+            whose shape is (S, R, C) in the 3D case or (R, C) in the 2D case.
+        moving_values: array, shape(n,) if sparse sampling is being used,
+                       array, shape(S, R, C) or (R, C) if dense sampling
+            the intensity values corresponding to the moving image used to
+            update the histogram. If sparse sampling is being used, then
+            it is simply a sequence of scalars, obtained by sampling the moving
+            image at the `n` sampling points (mapped to the moving space by the
+            current affine transform). If dense sampling is being used,
+            then the intensities are given by the moving imaged linearly
+            transformed towards the static image by the current affine, which
+            results in an image of the same shape as the static image.
+        """
+        if self.sampling_proportion is None:  # Dense case
+            static_values = self.static
+            moving_values = self.affine_map.transform(self.moving)
+       
+        else:  # Sparse case
+            sp_to_moving = self.moving_world2grid.dot(self.affine_map.affine)
+            pts = sp_to_moving.dot(self.samples.T).T  # Points on moving grid
+            pts = pts[..., :self.dim]
+            self.moving_vals, inside = self.interp_method(self.moving, pts)
+            self.moving_vals = np.array(self.moving_vals)
+            static_values = self.static_vals
+            moving_values = self.moving_vals
+        self.ssd_metric_obj.update_delta(static_values, moving_values)
+        return static_values, moving_values
+
+    def _update_ssd_metric(self, params, update_gradient=True):
+        r""" Updates ssd metric using gradient of the moving image,
+            gradient of the transformation and delta between moving and static images
+
+         
+        The gradient of the images is computed only if update_gradient
+        is True.
+
+        Parameters
+        ----------
+        params : array, shape (n,)
+            the parameter vector of the transform currently used by the metric
+            (the transform name is provided when self.setup is called), n is
+            the number of parameters of the transform
+        update_gradient : Boolean, optional
+            if True, the gradient of the joint PDF will also be computed,
+            otherwise, only the marginal and joint PDFs will be computed.
+            The default is True.
+        """
+        # Get the matrix associated with the `params` parameter vector
+        current_affine = self.transform.param_to_matrix(params)
+        # Get the static-to-prealigned matrix (only needed for the MI gradient)
+        static2prealigned = self.static_grid2world
+        if self.starting_affine is not None:
+            current_affine = current_affine.dot(self.starting_affine)
+            static2prealigned = self.starting_affine.dot(static2prealigned)
+        self.affine_map.set_affine(current_affine)
+
+        # Update the histogram with the current joint intensities
+        static_values, moving_values = self._update_delta()
+
+       
+        grad = None  # Buffer to write the SSD gradient into (if needed)
+        if update_gradient:
+            grad = self.metric_grad
+            # Compute the gradient of the joint PDF w.r.t. parameters
+            if self.sampling_proportion is None:  # Dense case
+                # Compute the gradient of moving img. at physical points
+                # associated with the >>static image's grid<< cells
+                # The image gradient must be eval. at current moved points
+                grid_to_world = current_affine.dot(self.static_grid2world)
+                mgrad, inside = vf.gradient(self.moving,
+                                            self.moving_world2grid,
+                                            self.moving_spacing,
+                                            self.static.shape,
+                                            grid_to_world)
+                # The Jacobian must be evaluated at the pre-aligned points
+                self.ssd_metric_obj.update_gradient_dense(
+                    params,
+                    self.transform,
+                    static_values,
+                    moving_values,
+                    static2prealigned,
+                    mgrad)
+            else:  # Sparse case
+                # Compute the gradient of moving at the sampling points
+                # which are already given in physical space coordinates
+                pts = current_affine.dot(self.samples.T).T  # Moved points
+                mgrad, inside = vf.sparse_gradient(self.moving,
+                                                   self.moving_world2grid,
+                                                   self.moving_spacing,
+                                                   pts)
+                # The Jacobian must be evaluated at the pre-aligned points
+                pts = self.samples_prealigned[..., :self.dim]
+                self.ssd_metric_obj.update_gradient_sparse(params, self.transform, static_values,
+                                         moving_values, pts, mgrad)
+
+        # Call the cythonized SSD computation  
+        if len(self.moving.shape) == 2:
+            self.metric_val = compute_ssd_mi_2d(self.ssd_metric_obj.ssd_gradient,
+                                                self.ssd_metric_obj.delta,
+                                                grad)
+
+        else:
+            self.metric_val = compute_ssd_mi_3d(self.ssd_metric_obj.ssd_gradient,
+                                                self.ssd_metric_obj.delta,
+                                                grad)
+
+    def distance(self, params):
+        r""" Numeric value of the metric
+
+        We need to change the sign so we can use standard minimization
+        algorithms.
+
+        Parameters
+        ----------
+        params : array, shape (n,)
+            the parameter vector of the transform currently used by the metric
+            (the transform name is provided when self.setup is called), n is
+            the number of parameters of the transform
+
+        Returns
+        -------
+        metric : float
+            metric
+        """
+        try:
+            self._update_ssd_metric(params, False)
+        except (AffineInversionError, AffineInvalidValuesError):
+            return np.inf
+        return self.metric_val
+
+    def gradient(self, params):
+        r""" Numeric value of the metric's gradient at the given parameters
+
+        Parameters
+        ----------
+        params : array, shape (n,)
+            the parameter vector of the transform currently used by the metric
+            (the transform name is provided when self.setup is called), n is
+            the number of parameters of the transform
+
+        Returns
+        -------
+        grad : array, shape (n,)
+            the gradient of the negative Mutual Information
+        """
+        try:
+            self._update_ssd_metric(params, True)
+        except (AffineInversionError, AffineInvalidValuesError):
+            return 0 * self.metric_grad
+        return -1 * self.metric_grad
+
+    def distance_and_gradient(self, params):
+        r""" Numeric value of the metric and its gradient at given parameters
+
+        Parameters
+        ----------
+        params : array, shape (n,)
+            the parameter vector of the transform currently used by the metric
+            (the transform name is provided when self.setup is called), n is
+            the number of parameters of the transform
+
+        Returns
+        -------
+        metric val : float
+            the ssd information of the input images after
+            transforming the moving image by the currently set transform
+            with `params` parameters
+        neg_mi_grad : array, shape (n,)
+            the gradient of the negative Mutual Information
+        """
+        try:
+            self._update_ssd_metric(params, True)
+        except (AffineInversionError, AffineInvalidValuesError):
+            return np.inf, 0 * self.metric_grad
+        return self.metric_val, -1 * self.metric_grad
 
 
 class AffineRegistration(object):
