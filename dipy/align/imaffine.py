@@ -46,19 +46,26 @@
 import numpy as np
 import numpy.linalg as npl
 import scipy.ndimage as ndimage
+
+from dipy.align.ssdmetric import SSDMetricComputation, compute_ssd_mi_2d,compute_ssd_mi_3d
+
 from dipy.core.optimize import Optimizer
 from dipy.core.interpolation import (interpolate_scalar_2d,
                                      interpolate_scalar_3d)
 from dipy.align import vector_fields as vf
+
 from dipy.align import VerbosityLevels
 from dipy.align.parzenhist import (ParzenJointHistogram,
                                    sample_domain_regular,
                                    compute_parzen_mi)
 
-from dipy.align.ssdmetric import (SSDMetric,compute_ssd_mi_2d,compute_ssd_mi_3d)
+
+
 from dipy.align.imwarp import (get_direction_and_spacings, ScaleSpace)
 from dipy.align.scalespace import IsotropicScaleSpace
 from warnings import warn
+
+
 
 _interp_options = ['nearest', 'linear']
 _transform_method = {}
@@ -535,6 +542,7 @@ class MutualInformationMetric(object):
         """
         n = transform.get_number_of_parameters()
         self.metric_grad = np.zeros(n, dtype=np.float64)
+
         self.dim = len(static.shape)
         if moving_grid2world is None:
             moving_grid2world = np.eye(self.dim + 1)
@@ -680,6 +688,7 @@ class MutualInformationMetric(object):
                                             self.moving_spacing,
                                             self.static.shape,
                                             grid_to_world)
+
                 # The Jacobian must be evaluated at the pre-aligned points
                 H.update_gradient_dense(
                     params,
@@ -700,6 +709,7 @@ class MutualInformationMetric(object):
                 pts = self.samples_prealigned[..., :self.dim]
                 H.update_gradient_sparse(params, self.transform, static_values,
                                          moving_values, pts, mgrad)
+
 
         # Call the cythonized MI computation with self.histogram fields
         self.metric_val = compute_parzen_mi(H.joint, H.joint_grad,
@@ -781,20 +791,22 @@ class MutualInformationMetric(object):
             return np.inf, 0 * self.metric_grad
         return -1 * self.metric_val, -1 * self.metric_grad
 
-class SumSquareDifferenceMetric(object):
+
+class SSDMetric(object):
 
     def __init__(self, sampling_proportion=None):
-        r""" Initializes an instance of the sum square difference metric
+        r""" Initializes an instance of the SSD metric
 
         This class implements the methods required by Optimizer to drive the
         registration process.
 
         Parameters
         ----------
+
         sampling_proportion : None or float in interval (0, 1], optional
             There are two types of sampling: dense and sparse. Dense sampling
-            uses all voxels for estimating the (joint and marginal) intensity
-            histograms, while sparse sampling uses a subset of them. If
+            uses all voxels for estimating the  intensity gradient, 
+            while sparse sampling uses a subset of them. If
             `sampling_proportion` is None, then dense sampling is
             used. If `sampling_proportion` is a floating point value in (0,1]
             then sparse sampling is used, where `sampling_proportion`
@@ -811,7 +823,7 @@ class SumSquareDifferenceMetric(object):
         coordinates. When using dense sampling, this random displacement is
         not applied.
         """
-        self.ssd_metric_obj = SSDMetric() 
+        self.ssd_metric = SSDMetricComputation()
         self.sampling_proportion = sampling_proportion
         self.metric_val = None
         self.metric_grad = None
@@ -820,7 +832,10 @@ class SumSquareDifferenceMetric(object):
               moving_grid2world=None, starting_affine=None):
         r""" Prepares the metric to compute intensity densities and gradients
 
-        
+        The histograms will be setup to compute probability densities of
+        intensities within the minimum and maximum values of `static` and
+        `moving`
+
         Parameters
         ----------
         transform: instance of Transform
@@ -848,6 +863,7 @@ class SumSquareDifferenceMetric(object):
         """
         n = transform.get_number_of_parameters()
         self.metric_grad = np.zeros(n, dtype=np.float64)
+
         self.dim = len(static.shape)
         if moving_grid2world is None:
             moving_grid2world = np.eye(self.dim + 1)
@@ -899,10 +915,10 @@ class SumSquareDifferenceMetric(object):
             static_p = static_p[..., :self.dim]
             self.static_vals, inside = self.interp_method(static, static_p)
             self.static_vals = np.array(self.static_vals, dtype=np.float64)
-        self.ssd_metric_obj.setup(self.static, self.moving)
+        self.ssd_metric.setup(self.static, self.moving)
 
-    def _update_delta(self):
-        r""" Updates the delta according to the current affine transform
+    def _update_delta_field(self):
+        r""" Updates the histogram according to the current affine transform
 
         The current affine transform is given by `self.affine_map`, which
         must be set before calling this method.
@@ -931,7 +947,6 @@ class SumSquareDifferenceMetric(object):
         if self.sampling_proportion is None:  # Dense case
             static_values = self.static
             moving_values = self.affine_map.transform(self.moving)
-       
         else:  # Sparse case
             sp_to_moving = self.moving_world2grid.dot(self.affine_map.affine)
             pts = sp_to_moving.dot(self.samples.T).T  # Points on moving grid
@@ -940,15 +955,19 @@ class SumSquareDifferenceMetric(object):
             self.moving_vals = np.array(self.moving_vals)
             static_values = self.static_vals
             moving_values = self.moving_vals
-        self.ssd_metric_obj.update_delta(static_values, moving_values)
+
+        self.delta_field = self.ssd_metric.update_delta_field(static_values,moving_values)
+
         return static_values, moving_values
 
-    def _update_ssd_metric(self, params, update_gradient=True):
-        r""" Updates ssd metric using gradient of the moving image,
-            gradient of the transformation and delta between moving and static images
+    def _update_ssd(self, params, update_gradient=True):
+        r""" Updates marginal and joint distributions and the joint gradient
 
-         
-        The gradient of the images is computed only if update_gradient
+        The distributions are updated according to the static and transformed
+        images. The transformed image is precisely the moving image after
+        transforming it by the transform defined by the `params` parameters.
+
+        The gradient of the joint PDF is computed only if update_gradient
         is True.
 
         Parameters
@@ -964,6 +983,7 @@ class SumSquareDifferenceMetric(object):
         """
         # Get the matrix associated with the `params` parameter vector
         current_affine = self.transform.param_to_matrix(params)
+
         # Get the static-to-prealigned matrix (only needed for the MI gradient)
         static2prealigned = self.static_grid2world
         if self.starting_affine is not None:
@@ -971,13 +991,17 @@ class SumSquareDifferenceMetric(object):
             static2prealigned = self.starting_affine.dot(static2prealigned)
         self.affine_map.set_affine(current_affine)
 
-        # Update the histogram with the current joint intensities
-        static_values, moving_values = self._update_delta()
+        static_values, moving_values = self._update_delta_field()
 
-       
+        S = self.ssd_metric  # Shortcut to
+
+        self.metric_val = np.sum ( S.delta ** 2 )
+        self.delta_sum = np.sum(S.delta)
+
         grad = None  # Buffer to write the SSD gradient into (if needed)
         if update_gradient:
             grad = self.metric_grad
+
             # Compute the gradient of the joint PDF w.r.t. parameters
             if self.sampling_proportion is None:  # Dense case
                 # Compute the gradient of moving img. at physical points
@@ -989,14 +1013,10 @@ class SumSquareDifferenceMetric(object):
                                             self.moving_spacing,
                                             self.static.shape,
                                             grid_to_world)
-                # The Jacobian must be evaluated at the pre-aligned points
-                self.ssd_metric_obj.update_gradient_dense(
-                    params,
-                    self.transform,
-                    static_values,
-                    moving_values,
-                    static2prealigned,
-                    mgrad)
+
+                S.update_gradient_dense ( params, self.transform, static_values, moving_values,
+                                          static2prealigned, mgrad )
+
             else:  # Sparse case
                 # Compute the gradient of moving at the sampling points
                 # which are already given in physical space coordinates
@@ -1007,22 +1027,15 @@ class SumSquareDifferenceMetric(object):
                                                    pts)
                 # The Jacobian must be evaluated at the pre-aligned points
                 pts = self.samples_prealigned[..., :self.dim]
-                self.ssd_metric_obj.update_gradient_sparse(params, self.transform, static_values,
-                                         moving_values, pts, mgrad)
 
-        # Call the cythonized SSD computation  
-        if len(self.moving.shape) == 2:
-            self.metric_val = compute_ssd_mi_2d(self.ssd_metric_obj.ssd_gradient,
-                                                self.ssd_metric_obj.delta,
-                                                grad)
+                S.update_gradient_sparse ( params, self.transform, static_values,
+                                           moving_values, pts, mgrad )
 
-        else:
-            self.metric_val = compute_ssd_mi_3d(self.ssd_metric_obj.ssd_gradient,
-                                                self.ssd_metric_obj.delta,
-                                                grad)
+            for i in range ( len ( params ) ):
+                grad[i] = -2 * self.delta_sum * S.ssd_grad[i]
 
     def distance(self, params):
-        r""" Numeric value of the metric
+        r""" Numeric value of the for metric
 
         We need to change the sign so we can use standard minimization
         algorithms.
@@ -1037,10 +1050,12 @@ class SumSquareDifferenceMetric(object):
         Returns
         -------
         metric : float
-            metric
+            the metric value of the input images after
+            transforming the moving image by the currently set transform
+            with `params` parameters
         """
         try:
-            self._update_ssd_metric(params, False)
+            self._update_ssd(params, False)
         except (AffineInversionError, AffineInvalidValuesError):
             return np.inf
         return self.metric_val
@@ -1061,10 +1076,10 @@ class SumSquareDifferenceMetric(object):
             the gradient of the negative Mutual Information
         """
         try:
-            self._update_ssd_metric(params, True)
+            self._update_ssd(params)
         except (AffineInversionError, AffineInvalidValuesError):
             return 0 * self.metric_grad
-        return -1 * self.metric_grad
+        return  self.metric_grad
 
     def distance_and_gradient(self, params):
         r""" Numeric value of the metric and its gradient at given parameters
@@ -1078,18 +1093,18 @@ class SumSquareDifferenceMetric(object):
 
         Returns
         -------
-        metric val : float
-            the ssd information of the input images after
+        metric : float
+            the ssd value of the input images after
             transforming the moving image by the currently set transform
             with `params` parameters
-        neg_mi_grad : array, shape (n,)
-            the gradient of the negative Mutual Information
+        gradient of the metric : array, shape (n,)
+            the gradient of the ssd metric
         """
         try:
-            self._update_ssd_metric(params, True)
+            self._update_ssd(params, True)
         except (AffineInversionError, AffineInvalidValuesError):
             return np.inf, 0 * self.metric_grad
-        return self.metric_val, -1 * self.metric_grad
+        return  self.metric_val,  self.metric_grad
 
 
 class AffineRegistration(object):

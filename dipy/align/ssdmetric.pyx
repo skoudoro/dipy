@@ -7,6 +7,7 @@ import numpy as np
 cimport numpy as cnp
 cimport cython
 import numpy.random as random
+import sys
 from dipy.align.fused_types cimport floating
 from dipy.align import vector_fields as vf
 
@@ -23,8 +24,7 @@ cdef extern from "dpy_math.h" nogil:
     double sin(double)
     double log(double)
 
-
-class SSDMetric(object):
+class SSDMetricComputation(object):
     def __init__(self):
         r""" Compute ssd metric and derivatives of transformation matrix.
 
@@ -44,7 +44,6 @@ class SSDMetric(object):
 
         """
         self.setup_called = False
-         
 
     def setup(self, static, moving):
         r""" Initializes static and moving images
@@ -55,16 +54,14 @@ class SSDMetric(object):
             static image
         moving : array
             moving image
-        
-        """
 
-        self.ssd_gradient = None
-        self.delta = None
-        self.metric_grad = None
-        self.metric_val = 0
+        """
+        self.ssd_grad = None
+        self.delta = np.zeros_like(moving)
         self.setup_called = True
 
-    def update_delta(self, sval, mval):
+
+    def update_delta_field(self, static, moving):
         r"""
         Computes delta for static and moving points
 
@@ -76,29 +73,12 @@ class SSDMetric(object):
               of full image
         """
         if not self.setup_called:
-            self.setup(sval,mval)
-        
-        
-        if len(sval.shape) == 1:
-            sval = sval.view(-1,1)
-            mval = mval.view(-1,1)
-        
-        self.delta = np.zeros_like(sval)
-        print(self.delta.shape)
-        
-        if len(sval.shape)==2:
-            for i in range(sval.shape[0]):
-                for j in range(sval.shape[1]):
-                    self.delta[i,j] = sval[i, j] - mval[i, j]
-        elif len(sval.shape) == 3:
-            for n in range(sval.shape[0]):
-                for i in range(sval.shape[1]):
-                    for j in range(sval.shape[2]):
-                        self.delta[n, i , j ] = sval[n, i ,j] - mval[n, i , j]
-        else:
-            raise ValueError("Cant compute delta for images that are not 2 and 3 dimensions")
+            self.setup(static,moving)
 
-    def update_gradient_dense(self, theta, transform, static, moving, grid2world, mgradient):
+        self.delta = (static - moving)
+
+    def update_gradient_dense(self, theta, transform, static, moving,
+                              grid2world, mgradient):
         r"""
         Compute the gradient with respect to transformation parameters.
 
@@ -131,53 +111,51 @@ class SSDMetric(object):
         mgradient : array, shape (S, R, C, 3)
             the gradient of the moving image
         """
-
         if static.shape != moving.shape:
             raise ValueError("Images must have the same shape")
         dim = len(static.shape)
-
-
         if not dim in [2, 3]:
             msg = 'Only dimensions 2 and 3 are supported. ' +\
                 str(dim) + ' received'
             raise ValueError(msg)
-        n = theta.shape[0]
+
         if mgradient.shape != moving.shape + (dim,):
             raise ValueError('Invalid gradient field dimensions.')
 
         if not self.setup_called:
             self.setup(static, moving)
 
-        if (self.ssd_gradient is None) or (self.ssd_gradient.shape[2] != n):
-            self.ssd_gradient = np.zeros((n,))
+        n = theta.shape[0] ## number of transformation parameters
+
+        if self.ssd_grad is None:
+            self.ssd_grad = np.zeros((n,)) ## number of parameters
 
         if dim == 2:
             if mgradient.dtype == np.float64:
-                _gradient_dense_2d[cython.double](theta, transform, static, moving, grid2world, mgradient,self.ssd_gradient)
-
+                gradient_dense_2d[cython.double](theta, transform,
+                    static, moving, grid2world, mgradient,self.ssd_grad)
             elif mgradient.dtype == np.float32:
-                _gradient_dense_2d[cython.float](theta, transform, static, moving, grid2world, mgradient,self.ssd_gradient)
-
+                gradient_dense_2d[cython.float](theta, transform,
+                    static, moving, grid2world, mgradient,self.ssd_grad)
             else:
-                raise ValueError("Grad field dtype must be floating point")
+                raise ValueError('Grad. field dtype must be floating point')
 
         elif dim == 3:
             if mgradient.dtype == np.float64:
-                _gradient_dense_3d[cython.double](theta, transform, static, moving, grid2world, mgradient,self.ssd_gradient)
-            
+                gradient_dense_3d[cython.double](theta, transform,
+                    static, moving, grid2world, mgradient,self.ssd_grad)
             elif mgradient.dtype == np.float32:
-                _gradient_dense_3d[cython.float](theta, transform, static, moving, grid2world, mgradient,self.ssd_gradient)
-
-        else:
-            msg = 'Only dimensions 2 and 3 are supported. ' + str(dim) +\
-                ' received'
-            raise ValueError(msg)
+                gradient_dense_3d[cython.float](theta, transform,
+                    static, moving, grid2world, mgradient, self.ssd_grad)
+            else:
+                raise ValueError('Grad. field dtype must be floating point')
 
 
-    def update_gradient_sparse(self, theta, transform, sval, mval, sample_points, mgradient):
+    def update_gradient_sparse(self, theta, transform, sval, mval,
+                               sample_points, mgradient):
         r""" Computes the Gradient of the  w.r.t. transform parameters
 
-       
+
         The gradient is stored in self.ssd_gradient.
 
         Parameters
@@ -197,6 +175,7 @@ class SSDMetric(object):
         mgradient : array, shape (m, 3)
             the gradient of the moving image at the sample points
         """
+
         dim = sample_points.shape[1]
         if mgradient.shape[1] != dim:
             raise ValueError('Dimensions of gradients and points are different')
@@ -210,41 +189,45 @@ class SSDMetric(object):
             raise ValueError('Gradients dtype must be floating point')
 
         n = theta.shape[0]
-         
 
-        if (self.ssd_gradient is None) or (self.ssd_gradient.shape[2] != n):
-            self.ssd_gradient = np.zeros(shape=(n,))
+
+        if self.ssd_grad is None:
+            self.ssd_grad = np.zeros(shape=(n,))
 
         if dim == 2:
             if mgradient.dtype == np.float64:
-                _gradient_sparse_2d[cython.double](theta, transform,
-                    sval, mval, sample_points, mgradient, self.ssd_gradient)
+                gradient_sparse_2d[cython.double](theta, transform,
+                    sval, mval, sample_points, mgradient, self.ssd_grad)
             elif mgradient.dtype == np.float32:
-                _gradient_sparse_2d[cython.float](theta, transform,
-                    sval, mval, sample_points, mgradient, self.ssd_gradient)
+                gradient_sparse_2d[cython.float](theta, transform,
+                    sval, mval, sample_points, mgradient, self.ssd_grad)
             else:
                 raise ValueError('Gradients dtype must be floating point')
 
         elif dim == 3:
-            if mgradient.dtype == np.float64:
-                _gradient_sparse_3d[cython.double](theta, transform,
-                    sval, mval, sample_points, mgradient,self.ssd_gradient)
 
+            if mgradient.dtype == np.float64:
+                gradient_sparse_3d[cython.double](theta, transform,
+                    sval, mval, sample_points, mgradient, self.ssd_grad)
             elif mgradient.dtype == np.float32:
-                _gradient_sparse_3d[cython.float](theta, transform,
-                    sval, mval, sample_points, mgradient,self.ssd_gradient)
+                gradient_sparse_3d[cython.float](theta, transform,
+                    sval, mval, sample_points, mgradient,self.ssd_grad)
             else:
                 raise ValueError('Gradients dtype must be floating point')
+
         else:
             msg = 'Only dimensions 2 and 3 are supported. ' + str(dim) +\
                 ' received'
             raise ValueError(msg)
 
 
-cdef _gradient_dense_2d(double[:] theta, Transform transform,
-                                  double[:, :] static, double[:, :] moving,
+
+cdef gradient_dense_2d(double[:] theta, Transform transform,
+                                  double[:, :] static,
+                                  double[:, :] moving,
                                   double[:, :] grid2world,
-                                  floating[:, :, :] mgradient, double[:] grad):
+                                  floating[:, :,:] mgradient,
+                                  double[:] grad):
     r""" Gradient of the metric w.r.t. transform parameters theta
 
     Computes the vector of partial derivatives 
@@ -281,14 +264,14 @@ cdef _gradient_dense_2d(double[:] theta, Transform transform,
         double rn, cn
         double val, spline_arg, norm_factor
         double[:, :] J = np.empty(shape=(2, n), dtype=np.float64)
+        double[:] prod = np.empty(shape=(n,), dtype=np.float64)
         double[:] x = np.empty(shape=(2,), dtype=np.float64)
 
-    grad[...] = 0
+
     with nogil:
         valid_points = 0
         for i in range(nrows):
             for j in range(ncols):
-                
                 x[0] = _apply_affine_2d_x0(i, j, 1, grid2world)
                 x[1] = _apply_affine_2d_x1(i, j, 1, grid2world)
 
@@ -299,12 +282,12 @@ cdef _gradient_dense_2d(double[:] theta, Transform transform,
                     grad[k] += (J[0, k] * mgradient[i, j, 0] +
                                J[1, k] * mgradient[i, j, 1])
 
-                
-cdef _gradient_dense_3d(double[:] theta, Transform transform,
+
+cdef gradient_dense_3d(double[:] theta, Transform transform,
                                   double[:, :, :] static,
                                   double[:, :, :] moving,
                                   double[:, :] grid2world,
-                                  floating[:, :, :, :] mgradient,
+                                  floating[:, :,:,:] mgradient,
                                   double[:] grad):
     r""" Gradient of the metric  w.r.t. transform parameters theta
 
@@ -345,13 +328,14 @@ cdef _gradient_dense_3d(double[:] theta, Transform transform,
         double[:] prod = np.empty(shape=(n,), dtype=np.float64)
         double[:] x = np.empty(shape=(3,), dtype=np.float64)
 
-    grad[...] = 0
+
     with nogil:
         valid_points = 0
         for k in range(nslices):
             for i in range(nrows):
                 for j in range(ncols):
-                    
+
+                    valid_points += 1
                     x[0] = _apply_affine_3d_x0(k, i, j, 1, grid2world)
                     x[1] = _apply_affine_3d_x1(k, i, j, 1, grid2world)
                     x[2] = _apply_affine_3d_x2(k, i, j, 1, grid2world)
@@ -364,12 +348,11 @@ cdef _gradient_dense_3d(double[:] theta, Transform transform,
                                    J[1, l] * mgradient[k, i, j, 1] +
                                    J[2, l] * mgradient[k, i, j, 2])
 
-                    
 
 
-cdef _gradient_sparse_2d(double[:] theta, Transform transform,
+cdef gradient_sparse_2d(double[:] theta, Transform transform,
                                    double[:] sval, double[:] mval,
-                                   double[:, :] sample_points,
+                                   double[:,:] sample_points,
                                    floating[:, :] mgradient,
                                    double[:] grad):
     r""" Gradient of the gradient w.r.t. transform parameters theta
@@ -405,23 +388,24 @@ cdef _gradient_sparse_2d(double[:] theta, Transform transform,
         double rn, cn
         double val, spline_arg, norm_factor
         double[:, :] J = np.empty(shape=(2, n), dtype=np.float64)
-       
-    grad[...] = 0
+        double[:] prod = np.empty(shape=(n,), dtype=np.float64)
+
+    grad[:] = 0
     with nogil:
-         
+        valid_points = 0
         for i in range(m):
-             
+            valid_points += 1
             if constant_jacobian == 0:
                 constant_jacobian = transform._jacobian(theta,
                                                         sample_points[i], J)
+
 
             for j in range(n):
                 grad[j] += (J[0, j] * mgradient[i, 0] +
                            J[1, j] * mgradient[i, 1])
 
-           
 
-cdef _gradient_sparse_3d(double[:] theta, Transform transform,
+cdef gradient_sparse_3d(double[:] theta, Transform transform,
                                    double[:] sval, double[:] mval,
                                    double[:, :] sample_points,
                                    floating[:, :] mgradient,
@@ -460,13 +444,24 @@ cdef _gradient_sparse_3d(double[:] theta, Transform transform,
         double rn, cn
         double val, spline_arg, norm_factor
         double[:, :] J = np.empty(shape=(3, n), dtype=np.float64)
-    grad[...] = 0
+        double[:] prod = np.empty(shape=(n,), dtype=np.float64)
+
+
     with nogil:
+        valid_points = 0
         for i in range(m):
+            valid_points += 1
+
             if constant_jacobian == 0:
-                constant_jacobian = transform._jacobian(theta,sample_points[i], J)
+                constant_jacobian = transform._jacobian(theta,
+                                                        sample_points[i], J)
+
             for j in range(n):
-                grad[j] += (J[0, j] * mgradient[i, 0] + J[1, j] * mgradient[i, 1] + J[2, j] * mgradient[i, 2])
+                grad[j] += (J[0, j] * mgradient[i, 0] +
+                           J[1, j] * mgradient[i, 1] +
+                           J[2, j] * mgradient[i, 2])
+
+
 
 def compute_ssd_mi_2d(double[:]ssd_grad, double[:,:] delta, double[:] mi_gradient):
     r""" Computes the ssd and its gradient (if requested)
@@ -488,7 +483,7 @@ def compute_ssd_mi_2d(double[:]ssd_grad, double[:,:] delta, double[:] mi_gradien
         cnp.npy_intp nrows = delta.shape[0]
         cnp.npy_intp ncols = delta.shape[1]
         cnp.npy_intp n = ssd_grad.shape[0]
-         
+
     with nogil:
         mi_gradient[:] = 0
         metric_value = 0
@@ -505,7 +500,7 @@ def compute_ssd_mi_2d(double[:]ssd_grad, double[:,:] delta, double[:] mi_gradien
             delta_2 = delta[i, j]**2
             metric_value += delta_2
 
-    return metric_value 
+    return metric_value
 
 
 def compute_ssd_mi_3d(double[:]ssd_grad, double[:, :, :] delta, double[:] mi_gradient):
@@ -529,7 +524,7 @@ def compute_ssd_mi_3d(double[:]ssd_grad, double[:, :, :] delta, double[:] mi_gra
         cnp.npy_intp ncols = delta.shape[2]
         cnp.npy_intp nslices = delta.shape[0]
         cnp.npy_intp n = ssd_grad.shape[0]
-         
+
     with nogil:
         mi_gradient[:] = 0
         metric_value = 0
@@ -547,19 +542,5 @@ def compute_ssd_mi_3d(double[:]ssd_grad, double[:, :, :] delta, double[:] mi_gra
                 delta_2 = delta[s, i, j]**2
                 metric_value += delta_2
 
-    return metric_value 
-
-
-
-
-
-        
-
-        
-
-
-
-
-
-
+    return metric_value
 
