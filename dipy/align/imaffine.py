@@ -805,7 +805,7 @@ class SSDMetric(object):
 
         sampling_proportion : None or float in interval (0, 1], optional
             There are two types of sampling: dense and sparse. Dense sampling
-            uses all voxels for estimating the  intensity gradient, 
+            uses all voxels for estimating the  intensity gradient,
             while sparse sampling uses a subset of them. If
             `sampling_proportion` is None, then dense sampling is
             used. If `sampling_proportion` is a floating point value in (0,1]
@@ -956,7 +956,7 @@ class SSDMetric(object):
             static_values = self.static_vals
             moving_values = self.moving_vals
 
-        self.delta_field = self.ssd_metric.update_delta_field(static_values,moving_values)
+        self.delta_field = moving_values - static_values
 
         return static_values, moving_values
 
@@ -1423,8 +1423,10 @@ class AffineRegistration(object):
                             options=self.options)
             params = opt.xopt
 
+
             # Update starting_affine matrix with optimal parameters
             T = self.transform.param_to_matrix(params)
+
             self.starting_affine = T.dot(self.starting_affine)
 
             # Start next iteration at identity

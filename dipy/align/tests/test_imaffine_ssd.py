@@ -513,3 +513,4 @@ def test_SSDMetric_invalid_params():
         actual_val, actual_grad = mi_metric.distance_and_gradient(theta)
         assert(np.isinf(actual_val))
         assert_equal(actual_grad, expected_grad)
+

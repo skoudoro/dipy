@@ -1,24 +1,206 @@
-"""
-=========================
-Affine Registration in 3D
-=========================
-This example explains how to compute an affine transformation to register two
-3D volumes by maximization of their Mutual Information [Mattes03]_. The
-optimization strategy is similar to that implemented in ANTS [Avants11]_.
-"""
+#!/usr/bin/env python
+# coding: utf-8
+
+# # SSD Metric:
+# 
+# SSD Metric is tested for two cases:
+# 1. 2d image: Zebrafish
+# 2. 3d image: MRI image
+
+# ## Import Libraries
+
+# In[1]:
+
 
 import numpy as np
+from PIL import Image
+import imageio
+import numpy as np
+
 from dipy.viz import regtools
 from dipy.data import fetch_stanford_hardi, read_stanford_hardi
 from dipy.data.fetcher import fetch_syn_data, read_syn_data
 from dipy.align.imaffine import (transform_centers_of_mass,
                                  AffineMap,
-                                 SumSquareDifferenceMetric,
-                                 MutualInformationMetric,
+                                 MutualInformationMetric,SumSquaredDifferenceMetric,
                                  AffineRegistration)
+from dipy.align.transforms import (TranslationTransform2D,
+                                   RigidTransform2D,RotationTransform2D,
+                                   AffineTransform2D)
+
+
+#
+import matplotlib.pyplot as plt
+
+get_ipython().run_line_magic('matplotlib', 'inline')
+import warnings
+warnings.filterwarnings('ignore')
+
+
+plt.style.use("fivethirtyeight")
+
+
+# ## SSD Metric - 2D Image
+
+# #### 1. Read Images - static and moving
+
+# In[2]:
+
+
+"""
+Read image
+"""
+def read_image(file):
+    image = imageio.imread(file)
+    return image
+
+"""
+Show image
+"""
+def show_image(image,title=""):
+    plt.imshow(image)
+    plt.title(title)
+    plt.axis("off")
+    plt.show()
+    
+    
+"""
+Plot two images
+"""
+def plot_two_images(static, moving, text=""):
+    fig = plt.figure()
+    plt.subplot(1,2,1)
+    plt.imshow(static)
+    plt.title("Static image")
+    plt.axis("off")
+    plt.subplot(1,2,2)
+    plt.imshow(moving)
+    plt.title("Moving image" + " " + text)
+    plt.axis("off")
+
+    
+# image1
+image1 = read_image("Image_20449.tif")
+image2 = read_image("Image_20450.tif")
+
+plot_two_images(image1, image2)
+
+
+# ### 2. Threshold Images
+
+# In[3]:
+
+
+static = np.copy(image1)
+moving = np.copy(image2)
+
+## Threshold image
+def threshold_image(im):
+    im[im<np.mean(im)]=0
+    return im
+
+static = threshold_image(static)
+moving = threshold_image(moving)
+
+print(f"Images thresholded at the mean")
+plot_two_images(static, moving)
+
+
+# ### 3. Center of Mass transformation
+# 
+
+# In[4]:
+
+
+c_of_mass = transform_centers_of_mass(static, None, moving, None)
+print("Images with center of mass transformed")
+transformed = c_of_mass.transform(moving)
+plot_two_images(static, transformed)
+
+
+# ### 4. Declare metric
+
+# In[5]:
+
+
+sampling_prop = None
+metric = SumSquaredDifferenceMetric()
+
+
+# ### 5. Test affine registeration with metric
+# 
+
+# In[6]:
+
+
+from dipy.align import VerbosityLevels
+c_of_mass = transform_centers_of_mass(static, None, moving, None)
+
+starting_affine = c_of_mass.affine
+affine_transform = RotationTransform2D()
+affreg = AffineRegistration(metric, [1000],
+                                             [0],
+                                             [1],
+                                             'L-BFGS-B',
+                                             None,
+                                             options=None)
+
+o = affreg.optimize(static, moving, affine_transform, None,
+                              None, None,
+                              starting_affine=None)
+
+
+# In[8]:
+
+
+a= o.transform(moving)
+fig = plt.figure()
+plt.subplot(1,3,1)
+plt.imshow(static)
+plt.title("Static image")
+plt.axis("off")
+plt.subplot(1,3,2)
+plt.imshow(a)
+plt.title("transformed image")
+plt.axis("off")
+plt.subplot(1,3,3)
+plt.imshow(moving)
+plt.title("moving image")
+plt.axis("off")
+
+
+# In[37]:
+
+
+starting_affine
+
+
+# In[33]:
+
+
+plt.imshow(moving)
+
+
+# ## Test 2 ( Affine 3d)
+# 
+
+# In[8]:
+
+
 from dipy.align.transforms import (TranslationTransform3D,
                                    RigidTransform3D,
                                    AffineTransform3D)
+
+
+"""
+==========================================
+Affine Registration in 3D
+==========================================
+This example explains how to compute an affine transformation to register two
+3D volumes by maximization of their Mutual Information [Mattes03]_. The
+optimization strategy is similar to that implemented in ANTS [Avants11]_.
+"""
+
 
 """
 Let's fetch two b0 volumes, the static image will be the b0 from the Stanford
@@ -117,7 +299,7 @@ None instead of an integer
 
 nbins = 32
 sampling_prop = None
-metric = SSDMetric(sampling_prop)
+metric = SumSquaredDifferenceMetric(None)
 
 """
 To avoid getting stuck at local optima, and to accelerate convergence, we use a
@@ -176,13 +358,12 @@ dimension (either 2 or 3) of the image we are working with (since we are
 aligning volumes, the dimension is 3)
 """
 
-transform = AffineTransform3D()
+transform = TranslationTransform3D()
 params0 = None
 starting_affine = c_of_mass.affine
-translation,params, func = affreg.optimize(static, moving, transform, params0,
+translation = affreg.optimize(static, moving, transform, params0,
                               static_grid2world, moving_grid2world,
-                              starting_affine=starting_affine,ret_metric=True)
-
+                              starting_affine=starting_affine)
 
 """
 If we look at the result, we can see that this translation is much better than
@@ -218,9 +399,8 @@ params0 = None
 starting_affine = translation.affine
 rigid = affreg.optimize(static, moving, transform, params0,
                         static_grid2world, moving_grid2world,
-                        starting_affine=starting_affine,ret_metric=True)
-print(params)
-exit()
+                        starting_affine=starting_affine)
+
 """
 This produces a slight rotation, and the images are now better aligned
 """
@@ -261,13 +441,6 @@ affine = affreg.optimize(static, moving, transform, params0,
 This results in a slight shear and scale
 """
 
-transformed = affine.transform(moving)
-regtools.overlay_slices(static, transformed, None, 0,
-                        "Static", "Transformed", "transformed_affine_0.png")
-regtools.overlay_slices(static, transformed, None, 1,
-                        "Static", "Transformed", "transformed_affine_1.png")
-regtools.overlay_slices(static, transformed, None, 2,
-                        "Static", "Transformed", "transformed_affine_2.png")
 
 """
 .. figure:: transformed_affine_0.png
@@ -284,8 +457,28 @@ regtools.overlay_slices(static, transformed, None, 2,
               free-form deformations. IEEE Transactions on Medical Imaging,
               22(1), 120-8.
 .. [Avants11] Avants, B. B., Tustison, N., & Song, G. (2011). Advanced
-              Normalization Tools (ANTS), 1-35.
+              Normalization Tools ( ANTS ), 1-35.
 
 .. include:: ../links_names.inc
 
 """
+
+
+# In[10]:
+
+
+transformed = affine.transform(moving)
+
+regtools.overlay_slices(static, transformed, None, 0,
+                        "Static", "Transformed", "transformed_affine_0.png")
+regtools.overlay_slices(static, transformed, None, 1,
+                        "Static", "Transformed", "transformed_affine_1.png")
+regtools.overlay_slices(static, transformed, None, 2,
+                        "Static", "Transformed", "transformed_affine_2.png")
+
+
+# In[ ]:
+
+
+
+
