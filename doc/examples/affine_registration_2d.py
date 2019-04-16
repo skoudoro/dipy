@@ -2,8 +2,6 @@
 # coding: utf-8
 
 # In[2]:
-
-
 import numpy as np
 from PIL import Image
 import imageio
@@ -26,9 +24,6 @@ import matplotlib.pyplot as plt
 
 import warnings
 warnings.filterwarnings('ignore')
-
-
-plt.style.use("fivethirtyeight")
 
 
 # In[3]:
@@ -90,7 +85,7 @@ moving = threshold_image(moving)
 
 
 sampling_prop = None
-metric = MutualInformationMetric(32,sampling_prop)
+metric = SSDMetric(sampling_prop)
 
 # In[22]:
 level_iters = [10000]

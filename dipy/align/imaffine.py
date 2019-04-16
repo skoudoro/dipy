@@ -1106,7 +1106,6 @@ class SSDMetric(object):
             return np.inf, 0 * self.metric_grad
         return  self.metric_val,  self.metric_grad
 
-
 class AffineRegistration(object):
 
     def __init__(self,
@@ -1409,7 +1408,7 @@ class AffineRegistration(object):
 
             # Optimize this level
             if self.options is None:
-                self.options = {'gtol': 1e-4,
+                self.options = {'gtol': 1,
                                 'disp': False}
 
             if self.method == 'L-BFGS-B':
@@ -1423,10 +1422,8 @@ class AffineRegistration(object):
                             options=self.options)
             params = opt.xopt
 
-
             # Update starting_affine matrix with optimal parameters
             T = self.transform.param_to_matrix(params)
-
             self.starting_affine = T.dot(self.starting_affine)
 
             # Start next iteration at identity

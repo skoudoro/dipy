@@ -131,7 +131,7 @@ coarsest resolution, 1000 at the medium resolution and 100 at the finest. These
 are the default settings
 """
 
-level_iters = [10000, 1000, 100]
+level_iters = [10000]
 
 """
 To compute the Gaussian pyramid, the original image is first smoothed at each
