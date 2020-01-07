@@ -3,7 +3,7 @@ from os.path import join as pjoin
 from dipy.workflows.workflow import Workflow
 from dipy.io.image import load_nifti
 from dipy.viz.app import horizon
-from dipy.io.peaks import load_peaks
+from dipy.io.peaks import load_pam
 from dipy.io.streamline import load_tractogram
 from dipy.io.utils import create_nifti_header
 
@@ -143,7 +143,7 @@ class HorizonFlow(Workflow):
 
             if ends(".pam5"):
 
-                pam = load_peaks(fname)
+                pam = load_pam(fname)
                 pams.append(pam)
 
                 if verbose:

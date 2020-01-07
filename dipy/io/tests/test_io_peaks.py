@@ -6,7 +6,7 @@ from nibabel.tmpdirs import InTemporaryDirectory
 
 from dipy.direction.peaks import PeaksAndMetrics
 from dipy.data import default_sphere
-from dipy.io.peaks import load_peaks, save_pam, pam_to_niftis
+from dipy.io.peaks import load_pam, save_pam, pam_to_niftis
 
 
 def test_io_peaks():
@@ -28,17 +28,17 @@ def test_io_peaks():
         pam.odf = np.zeros((10, 10, 10, default_sphere.vertices.shape[0]))
 
         save_pam(fname, pam)
-        pam2 = load_peaks(fname, verbose=True)
+        pam2 = load_pam(fname, verbose=True)
         npt.assert_array_equal(pam.peak_dirs, pam2.peak_dirs)
 
         pam2.affine = None
 
         fname2 = 'test2.pam5'
         save_pam(fname2, pam2, np.eye(4))
-        pam2_res = load_peaks(fname2, verbose=True)
+        pam2_res = load_pam(fname2, verbose=True)
         npt.assert_array_equal(pam.peak_dirs, pam2_res.peak_dirs)
 
-        pam3 = load_peaks(fname2, verbose=False)
+        pam3 = load_pam(fname2, verbose=False)
 
         for attr in ['peak_dirs', 'peak_values', 'peak_indices',
                      'gfa', 'qa', 'shm_coeff', 'B', 'odf']:
@@ -71,11 +71,11 @@ def test_io_peaks():
         pam.shm_coeff = np.zeros((10, 10, 10, 45))
         del pam.odf
         save_pam(fname6, pam)
-        pam_tmp = load_peaks(fname6, True)
+        pam_tmp = load_pam(fname6, True)
         npt.assert_equal(pam_tmp.odf, None)
 
         fname7 = 'test7.paw'
-        npt.assert_raises(IOError, load_peaks, fname7)
+        npt.assert_raises(IOError, load_pam, fname7)
 
         del pam.shm_coeff
         save_pam(fname6, pam, verbose=True)
@@ -87,8 +87,8 @@ def test_io_peaks():
         fname_gfa = 'gfa.nii.gz'
 
         pam.shm_coeff = np.ones((10, 10, 10, 45))
-        peaks_to_niftis(pam, fname_shm, fname_dirs, fname_values,
-                        fname_indices, fname_gfa, reshape_dirs=False)
+        pam_to_niftis(pam, fname_shm, fname_dirs, fname_values,
+                      fname_indices, fname_gfa, reshape_dirs=False)
 
         os.path.isfile(fname_shm)
         os.path.isfile(fname_dirs)
