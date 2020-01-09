@@ -4,10 +4,14 @@ import numpy.testing as npt
 
 from nibabel.tmpdirs import InTemporaryDirectory
 
+from dipy.core.gradients import gradient_table
+from dipy.core.subdivide_octahedron import create_unit_sphere
 from dipy.direction.peaks import PeaksAndMetrics
-from dipy.data import default_sphere
+from dipy.data import default_sphere, get_fnames, get_sphere
+from dipy.io.image import load_nifti
 from dipy.io.peaks import (load_pam, save_pam, pam_to_niftis, niftis_to_pam,
-                           peaks_to_niftis)
+                           peaks_to_niftis, tensor_to_pam)
+import dipy.reconst.dti as dti
 
 
 def test_io_peaks():
@@ -138,8 +142,34 @@ def test_io_niftis_to_pam():
     npt.assert_(os.path.isfile('test15.pam5'))
 
 
+def test_tensor_to_pam():
+    fdata, fbval, fbvec = get_fnames('small_25')
+    gtab = gradient_table(fbval, fbvec)
+    data, affine = load_nifti(fdata)
+    dm = dti.TensorModel(gtab)
+    df = dm.fit(data)
+    df.evals[0, 0, 0] = np.array([0, 0, 0])
+    sphere = create_unit_sphere(4)
+    odf = df.odf(sphere)
+
+    with InTemporaryDirectory():
+        fname = 'test_tt.pam5'
+        pam = tensor_to_pam(evals=df.evals, evecs=df.evecs, affine=affine,
+                            sphere=sphere, odf=odf, pam_file=fname)
+        npt.assert_(os.path.isfile(fname))
+        save_pam('test_tt_2.pam5', pam)
+        # pam2 = load_pam('test_tt_2.pam5')
+
+        # npt.assert_array_equal(pam.peak_values, pam2.peak_values)
+        # npt.assert_array_equal(pam.peak_dirs, pam2.peak_dirs)
+        # npt.assert_array_almost_equal(pam.peak_indices, pam2.peak_indices)
+        del pam
+
+
+
+
 if __name__ == '__main__':
-    # npt.run_module_suite()
-    test_io_peaks()
-    test_io_save_pam_error()
-    test_io_niftis_to_pam()
+    # test_io_peaks()
+    # test_io_save_pam_error()
+    # test_io_niftis_to_pam()
+    test_tensor_to_pam()
