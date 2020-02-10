@@ -7,7 +7,7 @@ import logging
 import importlib
 from inspect import getmembers, isfunction, getfullargspec
 from dipy.io.image import load_nifti, save_nifti
-from dipy.io.peaks import (save_pam, pam_to_niftis, niftis_to_pam,
+from dipy.io.peaks import (pam_to_niftis, niftis_to_pam,
                            tensor_to_pam)
 from dipy.workflows.workflow import Workflow
 

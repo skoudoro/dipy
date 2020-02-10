@@ -88,6 +88,18 @@ def test_split_flow():
         npt.assert_array_almost_equal(split_affine, affine)
 
 
+def test_niftis_to_pam_flow():
+    pass
+
+
+def test_tensor_to_pam_flow():
+    pass
+
+
+def test_pam_to_niftis_flow():
+    pass
+
+
 if __name__ == '__main__':
     test_io_fetch()
     test_io_fetch_fetcher_datanames()
