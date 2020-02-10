@@ -1,4 +1,5 @@
 import os
+import warnings
 import numpy as np
 import numpy.testing as npt
 
@@ -10,28 +11,33 @@ from dipy.direction.peaks import PeaksAndMetrics
 from dipy.data import default_sphere, get_fnames, get_sphere
 from dipy.io.image import load_nifti
 from dipy.io.peaks import (load_pam, save_pam, pam_to_niftis, niftis_to_pam,
-                           peaks_to_niftis, tensor_to_pam)
+                           peaks_to_niftis, tensor_to_pam, load_peaks,
+                           save_peaks)
 import dipy.reconst.dti as dti
+
+
+def generate_default_pam():
+    pam = PeaksAndMetrics()
+    pam.affine = np.eye(4)
+    pam.peak_dirs = np.random.rand(10, 10, 10, 5, 3)
+    pam.peak_values = np.zeros((10, 10, 10, 5))
+    pam.peak_indices = np.zeros((10, 10, 10, 5))
+    pam.shm_coeff = np.zeros((10, 10, 10, 45))
+    pam.sphere = default_sphere
+    pam.B = np.zeros((45, default_sphere.vertices.shape[0]))
+    pam.total_weight = 0.5
+    pam.ang_thr = 60
+    pam.gfa = np.zeros((10, 10, 10))
+    pam.qa = np.zeros((10, 10, 10, 5))
+    pam.odf = np.zeros((10, 10, 10, default_sphere.vertices.shape[0]))
+    return pam
 
 
 def test_io_peaks():
     with InTemporaryDirectory():
         fname = 'test.pam5'
 
-        pam = PeaksAndMetrics()
-        pam.affine = np.eye(4)
-        pam.peak_dirs = np.random.rand(10, 10, 10, 5, 3)
-        pam.peak_values = np.zeros((10, 10, 10, 5))
-        pam.peak_indices = np.zeros((10, 10, 10, 5))
-        pam.shm_coeff = np.zeros((10, 10, 10, 45))
-        pam.sphere = default_sphere
-        pam.B = np.zeros((45, default_sphere.vertices.shape[0]))
-        pam.total_weight = 0.5
-        pam.ang_thr = 60
-        pam.gfa = np.zeros((10, 10, 10))
-        pam.qa = np.zeros((10, 10, 10, 5))
-        pam.odf = np.zeros((10, 10, 10, default_sphere.vertices.shape[0]))
-
+        pam = generate_default_pam()
         save_pam(fname, pam)
         pam2 = load_pam(fname, verbose=True)
         npt.assert_array_equal(pam.peak_dirs, pam2.peak_dirs)
@@ -89,10 +95,15 @@ def test_io_peaks():
 
         pam_to_niftis(pam, prefix_fname='test_local', reshape_dirs=False)
         # old version
-        peaks_to_niftis(pam, fname_shm='shm.nii.gz', fname_dirs='dirs.nii.gz',
-                        fname_values='values.nii.gz',
-                        fname_indices='indices.nii.gz', fname_gfa='gfa.nii.gz',
-                        reshape_dirs=False)
+        with warnings.catch_warnings(record=True) as cw:
+            peaks_to_niftis(pam, fname_shm='shm.nii.gz',
+                            fname_dirs='dirs.nii.gz',
+                            fname_values='values.nii.gz',
+                            fname_indices='indices.nii.gz',
+                            fname_gfa='gfa.nii.gz',
+                            reshape_dirs=False)
+            npt.assert_equal(len(cw), 1)
+            npt.assert_(issubclass(cw[-1].category, DeprecationWarning))
 
         for name in ['test_local_shm.nii.gz', 'test_local_peaks_dirs.nii.gz',
                      'test_local_peaks_values.nii.gz', 'test_local_gfa.nii.gz',
@@ -167,8 +178,14 @@ def test_tensor_to_pam():
         del pam
 
 
-if __name__ == '__main__':
-    # test_io_peaks()
-    # test_io_save_pam_error()
-    # test_io_niftis_to_pam()
-    test_tensor_to_pam()
+def test_deprecated():
+    with warnings.catch_warnings(record=True) as cw:
+        warnings.simplefilter("always", DeprecationWarning)
+        fname = 'test_tt.pam5'
+        pam = generate_default_pam()
+        save_peaks(fname, pam)
+        pam2 = load_peaks(fname, verbose=True)
+        npt.assert_array_equal(pam.peak_dirs, pam2.peak_dirs)
+        npt.assert_equal(len(cw), 2)
+        npt.assert_(issubclass(cw[0].category, DeprecationWarning))
+        npt.assert_(issubclass(cw[1].category, DeprecationWarning))
