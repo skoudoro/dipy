@@ -8,7 +8,7 @@ from nibabel.tmpdirs import InTemporaryDirectory
 from dipy.core.gradients import gradient_table
 from dipy.core.subdivide_octahedron import create_unit_sphere
 from dipy.direction.peaks import PeaksAndMetrics
-from dipy.data import default_sphere, get_fnames, get_sphere
+from dipy.data import default_sphere, get_fnames
 from dipy.io.image import load_nifti
 from dipy.io.peaks import (load_pam, save_pam, pam_to_niftis, niftis_to_pam,
                            peaks_to_niftis, tensor_to_pam, load_peaks,
