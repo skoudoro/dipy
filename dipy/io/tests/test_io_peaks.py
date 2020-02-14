@@ -74,7 +74,7 @@ def test_io_peaks():
 
         pam.affine = np.eye(4)
         fname6 = 'test6.pam5'
-        save_pam(fname6, pam, verbose=False)
+        save_pam(fname6, pam, verbose=True)
 
         del pam.shm_coeff
         save_pam(fname6, pam, verbose=False)
