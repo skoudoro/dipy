@@ -890,9 +890,9 @@ class SSDMetric(object):
                                     moving.shape, moving_grid2world)
 
         if self.dim == 2:
-            self.interp_method = vf.interpolate_scalar_2d
+            self.interp_method = interpolate_scalar_2d
         else:
-            self.interp_method = vf.interpolate_scalar_3d
+            self.interp_method = interpolate_scalar_3d
 
         if self.sampling_proportion is None:
             self.samples = None

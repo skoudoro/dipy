@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # # SSD Metric:
-# 
+#
 # SSD Metric is tested for two cases:
 # 1. 2d image: Zebrafish
 # 2. 3d image: MRI image
@@ -22,7 +22,7 @@ from dipy.data import fetch_stanford_hardi, read_stanford_hardi
 from dipy.data.fetcher import fetch_syn_data, read_syn_data
 from dipy.align.imaffine import (transform_centers_of_mass,
                                  AffineMap,
-                                 MutualInformationMetric,SumSquaredDifferenceMetric,
+                                 MutualInformationMetric,SSDMetric,
                                  AffineRegistration)
 from dipy.align.transforms import (TranslationTransform2D,
                                    RigidTransform2D,RotationTransform2D,
@@ -32,7 +32,7 @@ from dipy.align.transforms import (TranslationTransform2D,
 #
 import matplotlib.pyplot as plt
 
-get_ipython().run_line_magic('matplotlib', 'inline')
+# get_ipython().run_line_magic('matplotlib', 'inline')
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -62,8 +62,8 @@ def show_image(image,title=""):
     plt.title(title)
     plt.axis("off")
     plt.show()
-    
-    
+
+
 """
 Plot two images
 """
@@ -78,7 +78,7 @@ def plot_two_images(static, moving, text=""):
     plt.title("Moving image" + " " + text)
     plt.axis("off")
 
-    
+
 # image1
 image1 = read_image("Image_20449.tif")
 image2 = read_image("Image_20450.tif")
@@ -107,7 +107,7 @@ plot_two_images(static, moving)
 
 
 # ### 3. Center of Mass transformation
-# 
+#
 
 # In[4]:
 
@@ -124,11 +124,11 @@ plot_two_images(static, transformed)
 
 
 sampling_prop = None
-metric = SumSquaredDifferenceMetric()
+metric = SSDMetric()
 
 
 # ### 5. Test affine registeration with metric
-# 
+#
 
 # In[6]:
 
@@ -182,7 +182,7 @@ plt.imshow(moving)
 
 
 # ## Test 2 ( Affine 3d)
-# 
+#
 
 # In[8]:
 
@@ -299,7 +299,7 @@ None instead of an integer
 
 nbins = 32
 sampling_prop = None
-metric = SumSquaredDifferenceMetric(None)
+metric = SSDMetric(None)
 
 """
 To avoid getting stuck at local optima, and to accelerate convergence, we use a
