@@ -21,7 +21,7 @@ jobs:
     env:
       AGENT_OS: "Linux"
       DEPENDS: cython numpy matplotlib h5py nibabel cvxpy
-      EXTRA_DEPENDS: scikit_learn vtk fury scipy
+      EXTRA_DEPENDS: scikit_learn vtk fury scipy pandas statsmodels tables xvfbwrapper
       VENV_ARGS: "--python=python"
       VTK: 1
       INSTALL_TYPE: "pip"
