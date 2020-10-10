@@ -51,4 +51,4 @@ jobs:
       with:
         html_file: 'doc/_build/html/index.html'
     - name: Preview URL
-      run: echo {{ steps.html_preview.outputs.url }}
+      run: echo ${{ steps.html_preview.outputs.url }}
