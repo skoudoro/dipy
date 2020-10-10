@@ -205,7 +205,8 @@ regtools.overlay_slices(static, transformed, None, 2,
 .. figure:: transformed_trans_2.png
    :align: center
 
-   Registration result by translating the moving image, using Mutual Information.
+   Registration result by translating the moving image, using Mutual
+   Information.
 """
 
 """
@@ -244,9 +245,9 @@ regtools.overlay_slices(static, transformed, None, 2,
 """
 
 """
-Finally, let's refine with a full affine transform (translation, rotation, scale
-and shear), it is safer to fit more degrees of freedom now since we must be
-very close to the optimal transform
+Finally, let's refine with a full affine transform (translation, rotation,
+scale and shear), it is safer to fit more degrees of freedom now since we
+must be very close to the optimal transform
 """
 
 transform = AffineTransform3D()
