@@ -24,7 +24,8 @@ jobs:
       architecture: 'x64'
       addToPath: true
   - script: |
-      brew install hdf5 openssl
+      brew reinstall openssl
+      brew install hdf5
     displayName: 'Install packages'
   - script: |
       brew cask install xquartz
