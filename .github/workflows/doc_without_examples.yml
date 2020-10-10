@@ -5,11 +5,11 @@ name: Doc Tests without examples
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
     paths:
       - 'doc/**'  # Build doc only if a file in doc folder has changed
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
     paths:
       - 'doc/**'  # Build doc only if a file in doc folder has changed
 
