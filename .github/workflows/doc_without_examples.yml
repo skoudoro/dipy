@@ -19,15 +19,8 @@ jobs:
 
     runs-on: ubuntu-latest
     env:
-      AGENT_OS: "Linux"
       DEPENDS: cython numpy matplotlib h5py nibabel cvxpy
       EXTRA_DEPENDS: scikit_learn vtk fury scipy pandas statsmodels tables xvfbwrapper
-      VENV_ARGS: "--python=python"
-      VTK: 1
-      INSTALL_TYPE: "pip"
-      TEST_WITH_XVFB: true
-      MESA_GL_VERSION_OVERRIDE: 3.3
-      LIBGL_ALWAYS_INDIRECT: y
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.7
@@ -40,6 +33,9 @@ jobs:
     - name: Install Documentation dependencies
       run: |
         pip install -r doc/doc-requirements.txt
+    - name: Install DIPY
+      run: |
+        pip install install -e .
     - name: Generate the documentation
       run: |
         make -C doc html-after-examples
