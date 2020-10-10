@@ -1,0 +1,51 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Doc Tests without examples
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'doc/**'  # Build doc only if a file in doc folder has changed
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'doc/**'  # Build doc only if a file in doc folder has changed
+
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    env:
+      AGENT_OS: "Linux"
+      DEPENDS: cython numpy matplotlib h5py nibabel cvxpy
+      EXTRA_DEPENDS: scikit_learn vtk fury scipy
+      VENV_ARGS: "--python=python"
+      VTK: 1
+      INSTALL_TYPE: "pip"
+      TEST_WITH_XVFB: true
+      MESA_GL_VERSION_OVERRIDE: 3.3
+      LIBGL_ALWAYS_INDIRECT: y
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.7
+    - name: Install DIPY dependencies
+      run: |
+        ./ci/azure/install.sh
+    - name: Install Documentation dependencies
+      run: |
+        pip install -r doc/doc-requirements.txt
+    - name: Generate the documentation
+      run: |
+        make -C doc html-after-examples
+    - name: Archive documentation artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: doc-without-examples
+        path: |
+          doc/_build/html
