@@ -36,6 +36,7 @@ jobs:
         python-version: 3.7
     - name: Install DIPY dependencies
       run: |
+        sudo chmod +x ci/azure/install.sh
         ./ci/azure/install.sh
     - name: Install Documentation dependencies
       run: |
