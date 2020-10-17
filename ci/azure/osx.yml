@@ -24,8 +24,6 @@ jobs:
       architecture: 'x64'
       addToPath: true
   - script: |
-      brew uninstall --force openssl
-      brew install openssl
       brew install hdf5
     displayName: 'Install packages'
   - script: |
