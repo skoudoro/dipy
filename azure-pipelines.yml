@@ -65,7 +65,7 @@ jobs:
 - template: ci/azure/osx.yml
   parameters:
     name: OSX
-    vmImage: macOS-10.14
+    vmImage: macOS-latest
     matrix:
       Python37-64bit + OPTIONAL_DEPS:
         python.version: '3.7'
