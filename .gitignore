@@ -38,3 +38,6 @@ dipy/.idea/
 .vscode
 .pytest_cache/*
 tmp/
+
+#: virtual environment
+venv
