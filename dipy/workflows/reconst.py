@@ -533,9 +533,10 @@ class ReconstDtiFlow(Workflow):
             bvals, bvecs, b0_threshold=b0_threshold, atol=bvecs_tol
         )
 
-        tenmodel = TensorModel(gtab, fit_method=fit_method)
         if fit_method.lower() in ["rt", "restore"]:
-            tenmodel.sigma = sigma or self.estimate_default_sigma(data)
+            tenmodel = TensorModel(gtab, fit_method=fit_method,sigma=sigma or self.estimate_default_sigma(data))
+        else:
+            tenmodel = TensorModel(gtab, fit_method=fit_method)
         tenfit = tenmodel.fit(data, mask)
 
         return tenfit, gtab
