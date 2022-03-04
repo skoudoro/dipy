@@ -534,7 +534,11 @@ class ReconstDtiFlow(Workflow):
         )
 
         if fit_method.lower() in ["rt", "restore"]:
-            tenmodel = TensorModel(gtab, fit_method=fit_method,sigma=sigma or self.estimate_default_sigma(data))
+            tenmodel = TensorModel(
+                gtab,
+                fit_method=fit_method,
+                sigma=sigma or self.estimate_default_sigma(data),
+            )
         else:
             tenmodel = TensorModel(gtab, fit_method=fit_method)
         tenfit = tenmodel.fit(data, mask)
@@ -940,7 +944,6 @@ class ReconstDkiFlow(Workflow):
         mask_files,
         fit_method="WLS",
         b0_threshold=50.0,
-        sigma=None,
         save_metrics=[],
         out_dir="",
         out_dt_tensor="dti_tensors.nii.gz",
@@ -1157,7 +1160,6 @@ class ReconstDkiFlow(Workflow):
         bvec,
         b0_threshold=50,
         fit_method="WLS",
-        sigma=None,
     ):
         logging.info("Diffusion kurtosis estimation...")
         bvals, bvecs = read_bvals_bvecs(bval, bvec)
@@ -1169,9 +1171,7 @@ class ReconstDkiFlow(Workflow):
             )
 
         gtab = gradient_table(bvals, bvecs, b0_threshold=b0_threshold)
-        dkmodel = DiffusionKurtosisModel(
-            gtab, fit_method=fit_method, sigma=sigma
-        )
+        dkmodel = DiffusionKurtosisModel(gtab, fit_method=fit_method)
         dkfit = dkmodel.fit(data, mask)
 
         return dkfit, gtab
