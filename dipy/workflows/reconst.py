@@ -1069,7 +1069,7 @@ class ReconstDkiFlow(Workflow):
                 mask = load_nifti_data(mask).astype(bool)
 
             dkfit, _ = self.get_fitted_tensor(
-                data, mask, bval, bvec, b0_threshold, fit_method, sigma=sigma
+                data, mask, bval, bvec, b0_threshold, fit_method
             )
 
             if not save_metrics:
