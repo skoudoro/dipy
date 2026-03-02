@@ -182,7 +182,7 @@ class BiasFieldCorrectionFlow(Workflow):
                 ).with_name(f"{prefix}_biasfield_corrected.nii.gz")
 
         self.update_flat_outputs(self.flat_outputs, io_it)
-        for fpath, corrected_out_path in io_it:
+        for fpath, corrected_out_path, out_bias_field_path in io_it:
             logger.info(f"Applying bias field correction on {fpath}")
 
             data, affine, img, voxsize = load_nifti(
@@ -215,7 +215,7 @@ class BiasFieldCorrectionFlow(Workflow):
                     return_bias_field=True,
                     zero_background=bool(zero_background),
                 )
-                bias_out_path = Path(corrected_out_path).parent / out_bias_field
+                bias_out_path = Path(out_bias_field_path)
                 save_nifti(str(bias_out_path), bias.astype(np.float32), affine)
                 logger.info(f"Bias field saved as {bias_out_path}")
 
