@@ -22,7 +22,9 @@ from scipy.ndimage import gaussian_filter
 
 from dipy.data import get_fnames
 from dipy.nn.utils import (
+    get_padded_shape,
     normalize,
+    pad_crop,
     recover_img,
     set_logger_level,
     transform_img,
@@ -596,7 +598,8 @@ class SynthSeg:
             has a batch dimension.
         return_prob : bool, optional
             Whether to return the probability map instead of a
-            label map. Useful for testing.
+            label map. Probability maps remain in the 1 mm isotropic model
+            space, padded to dimensions divisible by 32. Useful for testing.
 
         Returns
         -------
@@ -635,25 +638,36 @@ class SynthSeg:
         if batch_size is None:
             batch_size = 1
 
-        input_data = np.zeros((len(T1), 192, 192, 192))
+        transformed_images = []
         params_list = []
 
-        # Normalize the data.
+        # Resample the data to 1 mm isotropic resolution.
         ori_shape = T1.shape[1:]
         for i, T1_img in enumerate(T1):
             t_img, params = transform_img(
                 T1_img,
                 affine[i],
                 target_voxsize=(1.0, 1.0, 1.0),
-                final_size=(192, 192, 192),
                 order=3,
             )
+            transformed_images.append(t_img)
+            params_list.append(params)
+
+        # Pad all images to a common shape compatible with SynthSeg.
+        max_shape = np.max([img.shape for img in transformed_images], axis=0)
+        model_shape = get_padded_shape(max_shape, multiple=32)
+        input_data = np.zeros((len(T1),) + model_shape, dtype=np.float32)
+
+        for i, t_img in enumerate(transformed_images):
+            t_img, pad_vs, crop_vs = pad_crop(t_img, model_shape)
             min_v, max_v = np.percentile(t_img, (0.5, 99.5))
             t_img = normalize(t_img, min_v=min_v, max_v=max_v, new_min=0, new_max=1)
             input_data[i] = t_img
-            params_list.append(params)
+            params_list[i]["pad_value"] = pad_vs
+            params_list[i]["crop_value"] = crop_vs
+
         # Prediction stage
-        prediction = np.zeros((len(T1), 192, 192, 192, 33), dtype=np.float32)
+        prediction = np.zeros((len(T1),) + model_shape + (33,), dtype=np.float32)
         for batch_idx in range(batch_size, len(T1) + 1, batch_size):
             batch = input_data[batch_idx - batch_size : batch_idx]
             batch_start = batch_idx - batch_size
@@ -696,7 +710,7 @@ class SynthSeg:
             prediction[-remainder:] /= 2
 
         if return_prob:
-            labels = np.zeros((len(T1),) + (192, 192, 192, 33)).astype(np.float32)
+            labels = np.zeros((len(T1),) + model_shape + (33,), dtype=np.float32)
         else:
             labels = np.zeros((len(T1),) + ori_shape).astype(np.int32)
             masks = np.zeros((len(T1),) + ori_shape)

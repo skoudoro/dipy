@@ -277,6 +277,30 @@ def recover_img(image, params, *, order=3):
     return recovered
 
 
+def get_padded_shape(shape, multiple):
+    """Round each dimension of a shape up to a given multiple.
+
+    Parameters
+    ----------
+    shape : sequence of int
+        Input shape.
+    multiple : int
+        Value that every output dimension must be divisible by.
+
+    Returns
+    -------
+    tuple of int
+        Smallest shape greater than or equal to ``shape`` for which every
+        dimension is divisible by ``multiple``.
+    """
+    if multiple <= 0:
+        raise ValueError("multiple must be greater than zero")
+
+    shape = np.asarray(shape, dtype=int)
+    padded_shape = ((shape + multiple - 1) // multiple) * multiple
+    return tuple(int(value) for value in padded_shape)
+
+
 def pad_crop(image, target_shape):
     """
     Function to figure out pad and crop range
