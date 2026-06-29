@@ -1299,6 +1299,45 @@ def test_invert_vector_field_3d():
     )
 
 
+def test_invert_vector_field_threading():
+    """Check that threaded inversion is identical to serial inversion."""
+    spacing_2d = np.ones(2, dtype=np.float64)
+    d2, _ = vfu.create_harmonic_fields_2d(32, 32, 0.2, 8)
+
+    spacing_3d = np.ones(3, dtype=np.float64)
+    d3, _ = vfu.create_harmonic_fields_3d(16, 16, 16, 0.2, 8)
+
+    for dtype in (np.float32, np.float64):
+        field_2d = np.asarray(d2, dtype=dtype)
+        inverse_2d_serial = vfu.invert_vector_field_fixed_point_2d(
+            field_2d, None, spacing_2d, 20, 1e-7, num_threads=1
+        )
+        inverse_2d_threaded = vfu.invert_vector_field_fixed_point_2d(
+            field_2d, None, spacing_2d, 20, 1e-7, num_threads=2
+        )
+        assert_array_equal(inverse_2d_serial, inverse_2d_threaded)
+
+        field_3d = np.asarray(d3, dtype=dtype)
+        inverse_3d_serial = vfu.invert_vector_field_fixed_point_3d(
+            field_3d, None, spacing_3d, 20, 1e-7, num_threads=1
+        )
+        inverse_3d_threaded = vfu.invert_vector_field_fixed_point_3d(
+            field_3d, None, spacing_3d, 20, 1e-7, num_threads=2
+        )
+        assert_array_equal(inverse_3d_serial, inverse_3d_threaded)
+
+    assert_raises(
+        ValueError,
+        vfu.invert_vector_field_fixed_point_2d,
+        field_2d,
+        None,
+        spacing_2d,
+        20,
+        1e-7,
+        num_threads=0,
+    )
+
+
 def test_resample_vector_field_2d():
     r"""
     Expand a vector field by 2, then subsample by 2, the resulting

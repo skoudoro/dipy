@@ -1111,6 +1111,7 @@ class SymmetricDiffeomorphicRegistration(DiffeomorphicRegistration):
         inv_iter=20,
         inv_tol=1e-3,
         callback=None,
+        num_threads=None,
     ):
         """Symmetric Diffeomorphic Registration (SyN) Algorithm
 
@@ -1145,6 +1146,12 @@ class SymmetricDiffeomorphicRegistration(DiffeomorphicRegistration):
             a function receiving a SymmetricDiffeomorphicRegistration object
             to be called after each iteration (this optimizer will call this
             function passing self as parameter)
+        num_threads : int, optional
+            Number of threads to use for displacement field inversion. If None,
+            the value of the ``OMP_NUM_THREADS`` environment variable is used
+            if set; otherwise, all available threads are used. Negative values
+            count backward from the maximum number of threads. Zero raises an
+            error.
         """
         super().__init__(metric=metric)
         if level_iters is None:
@@ -1164,6 +1171,7 @@ class SymmetricDiffeomorphicRegistration(DiffeomorphicRegistration):
         self.full_energy_profile = []
         self.verbosity = VerbosityLevels.STATUS
         self.callback = callback
+        self.num_threads = num_threads
         self.moving_ss = None
         self.static_ss = None
         self.static_direction = None
@@ -1608,6 +1616,7 @@ class SymmetricDiffeomorphicRegistration(DiffeomorphicRegistration):
                 self.inv_iter,
                 self.inv_tol,
                 start=self.static_to_ref.backward,
+                num_threads=self.num_threads,
             )
         )
 
@@ -1620,6 +1629,7 @@ class SymmetricDiffeomorphicRegistration(DiffeomorphicRegistration):
                 self.inv_iter,
                 self.inv_tol,
                 start=self.moving_to_ref.backward,
+                num_threads=self.num_threads,
             )
         )
 
@@ -1632,6 +1642,7 @@ class SymmetricDiffeomorphicRegistration(DiffeomorphicRegistration):
                 self.inv_iter,
                 self.inv_tol,
                 start=self.static_to_ref.forward,
+                num_threads=self.num_threads,
             )
         )
 
@@ -1644,6 +1655,7 @@ class SymmetricDiffeomorphicRegistration(DiffeomorphicRegistration):
                 self.inv_iter,
                 self.inv_tol,
                 start=self.moving_to_ref.forward,
+                num_threads=self.num_threads,
             )
         )
 

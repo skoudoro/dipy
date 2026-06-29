@@ -6,6 +6,8 @@
 import numpy as np
 cimport numpy as cnp
 
+from cython.parallel cimport prange
+
 from dipy.align.fused_types cimport floating, number
 from dipy.core.interpolation cimport (_interpolate_scalar_2d,
                                       _interpolate_scalar_3d,
@@ -13,6 +15,7 @@ from dipy.core.interpolation cimport (_interpolate_scalar_2d,
                                       _interpolate_vector_3d,
                                       _interpolate_scalar_nn_2d,
                                       _interpolate_scalar_nn_3d)
+from dipy.utils.omp import determine_num_threads
 
 
 cdef extern from "dpy_math.h" nogil:
@@ -445,11 +448,132 @@ def compose_vector_fields_3d(floating[:, :, :, :] d1, floating[:, :, :, :] d2,
     return np.asarray(comp), np.asarray(stats)
 
 
+cdef void _compose_vector_fields_2d_no_stats(
+        floating[:, :, :] d1, floating[:, :, :] d2,
+        double[:, :] premult_index, double[:, :] premult_disp,
+        double time_scaling, floating[:, :, :] comp,
+        int num_threads) noexcept nogil:
+    """Compose 2D fields in parallel without computing unused statistics."""
+    cdef:
+        cnp.npy_intp nr1 = d1.shape[0]
+        cnp.npy_intp nc1 = d1.shape[1]
+        int inside
+        cnp.npy_intp i, j
+        double di, dj, dii, djj, diii, djjj
+
+    for i in prange(nr1, schedule="static", num_threads=num_threads):
+        for j in range(nc1):
+            dii = d1[i, j, 0]
+            djj = d1[i, j, 1]
+
+            if premult_disp is None:
+                di = dii
+                dj = djj
+            else:
+                di = _apply_affine_2d_x0(dii, djj, 0, premult_disp)
+                dj = _apply_affine_2d_x1(dii, djj, 0, premult_disp)
+
+            if premult_index is None:
+                diii = <double>i
+                djjj = <double>j
+            else:
+                diii = _apply_affine_2d_x0(
+                    <double>i, <double>j, 1, premult_index
+                )
+                djjj = _apply_affine_2d_x1(
+                    <double>i, <double>j, 1, premult_index
+                )
+
+            inside = _interpolate_vector_2d[floating](
+                d2, diii + di, djjj + dj, &comp[i, j, 0]
+            )
+
+            if inside == 1:
+                comp[i, j, 0] = time_scaling * comp[i, j, 0] + dii
+                comp[i, j, 1] = time_scaling * comp[i, j, 1] + djj
+            else:
+                comp[i, j, 0] = 0
+                comp[i, j, 1] = 0
+
+
+cdef void _compose_vector_fields_3d_no_stats(
+        floating[:, :, :, :] d1, floating[:, :, :, :] d2,
+        double[:, :] premult_index, double[:, :] premult_disp,
+        double time_scaling, floating[:, :, :, :] comp,
+        int num_threads) noexcept nogil:
+    """Compose 3D fields in parallel without computing unused statistics."""
+    cdef:
+        cnp.npy_intp ns1 = d1.shape[0]
+        cnp.npy_intp nr1 = d1.shape[1]
+        cnp.npy_intp nc1 = d1.shape[2]
+        int inside
+        cnp.npy_intp k, i, j
+        double dk, di, dj, dkk, dii, djj, dkkk, diii, djjj
+
+    for k in prange(ns1, schedule="static", num_threads=num_threads):
+        for i in range(nr1):
+            for j in range(nc1):
+                dkk = d1[k, i, j, 0]
+                dii = d1[k, i, j, 1]
+                djj = d1[k, i, j, 2]
+
+                if premult_disp is None:
+                    dk = dkk
+                    di = dii
+                    dj = djj
+                else:
+                    dk = _apply_affine_3d_x0(
+                        dkk, dii, djj, 0, premult_disp
+                    )
+                    di = _apply_affine_3d_x1(
+                        dkk, dii, djj, 0, premult_disp
+                    )
+                    dj = _apply_affine_3d_x2(
+                        dkk, dii, djj, 0, premult_disp
+                    )
+
+                if premult_index is None:
+                    dkkk = <double>k
+                    diii = <double>i
+                    djjj = <double>j
+                else:
+                    dkkk = _apply_affine_3d_x0(
+                        <double>k, <double>i, <double>j, 1, premult_index
+                    )
+                    diii = _apply_affine_3d_x1(
+                        <double>k, <double>i, <double>j, 1, premult_index
+                    )
+                    djjj = _apply_affine_3d_x2(
+                        <double>k, <double>i, <double>j, 1, premult_index
+                    )
+
+                inside = _interpolate_vector_3d[floating](
+                    d2, dkkk + dk, diii + di, djjj + dj,
+                    &comp[k, i, j, 0]
+                )
+
+                if inside == 1:
+                    comp[k, i, j, 0] = (
+                        time_scaling * comp[k, i, j, 0] + dkk
+                    )
+                    comp[k, i, j, 1] = (
+                        time_scaling * comp[k, i, j, 1] + dii
+                    )
+                    comp[k, i, j, 2] = (
+                        time_scaling * comp[k, i, j, 2] + djj
+                    )
+                else:
+                    comp[k, i, j, 0] = 0
+                    comp[k, i, j, 1] = 0
+                    comp[k, i, j, 2] = 0
+
+
 def invert_vector_field_fixed_point_2d(floating[:, :, :] d,
                                        double[:, :] d_world2grid,
                                        double[:] spacing,
                                        int max_iter, double tolerance,
-                                       floating[:, :, :] start=None):
+                                       floating[:, :, :] start=None,
+                                       num_threads=None):
     r"""Computes the inverse of a 2D displacement fields
 
     Computes the inverse of the given 2-D displacement field d using the
@@ -477,6 +601,11 @@ def invert_vector_field_fixed_point_2d(floating[:, :, :] d,
         an approximation to the inverse displacement field (if no approximation
         is available, None can be provided and the start displacement field
         will be zero)
+    num_threads : int or None, optional
+        Number of threads to use for the inversion. If None, the value of the
+        ``OMP_NUM_THREADS`` environment variable is used if set; otherwise,
+        all available threads are used. Negative values count backward from
+        the maximum number of threads. Zero raises an error.
 
     Returns
     -------
@@ -494,17 +623,15 @@ def invert_vector_field_fixed_point_2d(floating[:, :, :] d,
     cdef:
         cnp.npy_intp nr = d.shape[0]
         cnp.npy_intp nc = d.shape[1]
-        int iter_count, current, flag
+        cnp.npy_intp i, j
+        int iter_count, threads_to_use
         double difmag, mag, maxlen, step_factor
         double epsilon
         double error = 1 + tolerance
-        double di, dj, dii, djj
         double sr = spacing[0], sc = spacing[1]
 
     ftype = np.asarray(d).dtype
     cdef:
-        double[:] stats = np.zeros(shape=(2,), dtype=np.float64)
-        double[:] substats = np.empty(shape=(3,), dtype=np.float64)
         double[:, :] norms = np.zeros(shape=(nr, nc), dtype=np.float64)
         floating[:, :, :] p = np.zeros(shape=(nr, nc, 2), dtype=ftype)
         floating[:, :, :] q = np.zeros(shape=(nr, nc, 2), dtype=ftype)
@@ -515,6 +642,8 @@ def invert_vector_field_fixed_point_2d(floating[:, :, :] d,
     if start is not None:
         p[...] = start
 
+    threads_to_use = determine_num_threads(num_threads)
+
     with nogil:
         iter_count = 0
         while (iter_count < max_iter) and (tolerance < error):
@@ -522,19 +651,31 @@ def invert_vector_field_fixed_point_2d(floating[:, :, :] d,
                 epsilon = 0.75
             else:
                 epsilon = 0.5
-            _compose_vector_fields_2d[floating](p, d, None, d_world2grid,
-                                                1.0, q, substats)
+            _compose_vector_fields_2d_no_stats[floating](
+                p, d, None, d_world2grid, 1.0, q, threads_to_use
+            )
+
+            for i in prange(
+                nr, schedule="static", num_threads=threads_to_use
+            ):
+                for j in range(nc):
+                    norms[i, j] = sqrt(
+                        (q[i, j, 0] / sr) ** 2 + (q[i, j, 1] / sc) ** 2
+                    )
+
             difmag = 0
             error = 0
             for i in range(nr):
                 for j in range(nc):
-                    mag = sqrt((q[i, j, 0]/sr) ** 2 + (q[i, j, 1]/sc) ** 2)
-                    norms[i, j] = mag
+                    mag = norms[i, j]
                     error += mag
                     if difmag < mag:
                         difmag = mag
+
             maxlen = difmag * epsilon
-            for i in range(nr):
+            for i in prange(
+                nr, schedule="static", num_threads=threads_to_use
+            ):
                 for j in range(nc):
                     if norms[i, j] > maxlen:
                         step_factor = epsilon * maxlen / norms[i, j]
@@ -544,8 +685,6 @@ def invert_vector_field_fixed_point_2d(floating[:, :, :] d,
                     p[i, j, 1] = p[i, j, 1] - step_factor * q[i, j, 1]
             error /= (nr * nc)
             iter_count += 1
-        stats[0] = substats[1]
-        stats[1] = iter_count
     return np.asarray(p)
 
 
@@ -553,7 +692,8 @@ def invert_vector_field_fixed_point_3d(floating[:, :, :, :] d,
                                        double[:, :] d_world2grid,
                                        double[:] spacing,
                                        int max_iter, double tol,
-                                       floating[:, :, :, :] start=None):
+                                       floating[:, :, :, :] start=None,
+                                       num_threads=None):
     r"""Computes the inverse of a 3D displacement fields
 
     Computes the inverse of the given 3-D displacement field d using the
@@ -581,6 +721,11 @@ def invert_vector_field_fixed_point_3d(floating[:, :, :, :] d,
         an approximation to the inverse displacement field (if no approximation
         is available, None can be provided and the start displacement field
         will be zero)
+    num_threads : int or None, optional
+        Number of threads to use for the inversion. If None, the value of the
+        ``OMP_NUM_THREADS`` environment variable is used if set; otherwise,
+        all available threads are used. Negative values count backward from
+        the maximum number of threads. Zero raises an error.
 
     Returns
     -------
@@ -599,8 +744,8 @@ def invert_vector_field_fixed_point_3d(floating[:, :, :, :] d,
         cnp.npy_intp ns = d.shape[0]
         cnp.npy_intp nr = d.shape[1]
         cnp.npy_intp nc = d.shape[2]
-        int iter_count, current
-        double dkk, dii, djj, dk, di, dj
+        cnp.npy_intp k, i, j
+        int iter_count, threads_to_use
         double difmag, mag, maxlen, step_factor
         double epsilon = 0.5
         double error = 1 + tol
@@ -608,8 +753,6 @@ def invert_vector_field_fixed_point_3d(floating[:, :, :, :] d,
 
     ftype = np.asarray(d).dtype
     cdef:
-        double[:] stats = np.zeros(shape=(2,), dtype=np.float64)
-        double[:] substats = np.zeros(shape=(3,), dtype=np.float64)
         double[:, :, :] norms = np.zeros(shape=(ns, nr, nc), dtype=np.float64)
         floating[:, :, :, :] p = np.zeros(shape=(ns, nr, nc, 3), dtype=ftype)
         floating[:, :, :, :] q = np.zeros(shape=(ns, nr, nc, 3), dtype=ftype)
@@ -620,6 +763,8 @@ def invert_vector_field_fixed_point_3d(floating[:, :, :, :] d,
     if start is not None:
         p[...] = start
 
+    threads_to_use = determine_num_threads(num_threads)
+
     with nogil:
         iter_count = 0
         difmag = 1
@@ -628,22 +773,35 @@ def invert_vector_field_fixed_point_3d(floating[:, :, :, :] d,
                 epsilon = 0.75
             else:
                 epsilon = 0.5
-            _compose_vector_fields_3d[floating](p, d, None, d_world2grid,
-                                                1.0, q, substats)
+            _compose_vector_fields_3d_no_stats[floating](
+                p, d, None, d_world2grid, 1.0, q, threads_to_use
+            )
+
+            for k in prange(
+                ns, schedule="static", num_threads=threads_to_use
+            ):
+                for i in range(nr):
+                    for j in range(nc):
+                        norms[k, i, j] = sqrt(
+                            (q[k, i, j, 0] / ss) ** 2
+                            + (q[k, i, j, 1] / sr) ** 2
+                            + (q[k, i, j, 2] / sc) ** 2
+                        )
+
             difmag = 0
             error = 0
             for k in range(ns):
                 for i in range(nr):
                     for j in range(nc):
-                        mag = sqrt((q[k, i, j, 0]/ss) ** 2 +
-                                   (q[k, i, j, 1]/sr) ** 2 +
-                                   (q[k, i, j, 2]/sc) ** 2)
-                        norms[k, i, j] = mag
+                        mag = norms[k, i, j]
                         error += mag
                         if difmag < mag:
                             difmag = mag
-            maxlen = difmag*epsilon
-            for k in range(ns):
+
+            maxlen = difmag * epsilon
+            for k in prange(
+                ns, schedule="static", num_threads=threads_to_use
+            ):
                 for i in range(nr):
                     for j in range(nc):
                         if norms[k, i, j] > maxlen:
@@ -658,8 +816,6 @@ def invert_vector_field_fixed_point_3d(floating[:, :, :, :] d,
                                          step_factor * q[k, i, j, 2])
             error /= (ns * nr * nc)
             iter_count += 1
-        stats[0] = error
-        stats[1] = iter_count
     return np.asarray(p)
 
 

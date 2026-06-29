@@ -364,9 +364,12 @@ def test_optimizer_exceptions():
         ValueError, imwarp.SymmetricDiffeomorphicRegistration, metric, level_iters=[]
     )
 
-    optimizer = imwarp.SymmetricDiffeomorphicRegistration(metric, level_iters=None)
+    optimizer = imwarp.SymmetricDiffeomorphicRegistration(
+        metric, level_iters=None, num_threads=2
+    )
     # Verify the default iterations list
     assert_array_equal(optimizer.level_iters, [100, 100, 25])
+    assert_equal(optimizer.num_threads, 2)
 
     # Verify exception thrown when attempting to fit the energy profile without
     # enough data
