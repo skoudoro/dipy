@@ -846,12 +846,18 @@ class DiffeomorphicMap:
         self.disp_grid2world = expanded_grid2world
         self.disp_world2grid = expanded_world2grid
 
-    def compute_inversion_error(self):
+    def compute_inversion_error(self, *, num_threads=None):
         """Inversion error of the displacement fields
 
         Estimates the inversion error of the displacement fields by computing
         statistics of the residual vectors obtained after composing the forward
         and backward displacement fields.
+
+        Parameters
+        ----------
+        num_threads : int or None, optional
+            Number of OpenMP threads to use for displacement-field composition.
+            If None, use DIPY's default OpenMP thread count.
 
         Returns
         -------
@@ -880,7 +886,15 @@ class DiffeomorphicMap:
         else:
             compose_f = vfu.compose_vector_fields_3d
 
-        residual, stats = compose_f(self.backward, self.forward, None, Dinv, 1.0, None)
+        residual, stats = compose_f(
+            self.backward,
+            self.forward,
+            None,
+            Dinv,
+            1.0,
+            None,
+            num_threads=num_threads,
+        )
 
         return np.asarray(residual), np.asarray(stats)
 
@@ -911,7 +925,7 @@ class DiffeomorphicMap:
         new_map.is_inverse = self.is_inverse
         return new_map
 
-    def warp_endomorphism(self, phi):
+    def warp_endomorphism(self, phi, *, num_threads=None):
         """Composition of this DiffeomorphicMap with a given endomorphism
 
         Creates a new DiffeomorphicMap C with the same properties as self and
@@ -926,6 +940,9 @@ class DiffeomorphicMap:
         ----------
         phi : DiffeomorphicMap object
             the endomorphism to be warped by this diffeomorphic map
+        num_threads : int or None, optional
+            Number of OpenMP threads to use for displacement-field composition.
+            If None, use DIPY's default OpenMP thread count.
 
         Returns
         -------
@@ -958,11 +975,24 @@ class DiffeomorphicMap:
         else:
             compose_f = vfu.compose_vector_fields_3d
 
-        forward, stats = compose_f(d1, d2, None, premult_disp, 1.0, None)
-        (
-            backward,
-            stats,
-        ) = compose_f(d2_inv, d1_inv, None, premult_disp, 1.0, None)
+        forward, _ = compose_f(
+            d1,
+            d2,
+            None,
+            premult_disp,
+            1.0,
+            None,
+            num_threads=num_threads,
+        )
+        backward, _ = compose_f(
+            d2_inv,
+            d1_inv,
+            None,
+            premult_disp,
+            1.0,
+            None,
+            num_threads=num_threads,
+        )
 
         composition = self.shallow_copy()
         composition.forward = forward
@@ -1146,12 +1176,11 @@ class SymmetricDiffeomorphicRegistration(DiffeomorphicRegistration):
             a function receiving a SymmetricDiffeomorphicRegistration object
             to be called after each iteration (this optimizer will call this
             function passing self as parameter)
-        num_threads : int, optional
-            Number of threads to use for displacement field inversion. If None,
-            the value of the ``OMP_NUM_THREADS`` environment variable is used
-            if set; otherwise, all available threads are used. Negative values
-            count backward from the maximum number of threads. Zero raises an
-            error.
+        num_threads : int or None, optional
+            Number of OpenMP threads used for displacement-field composition
+            and inversion. If None, use DIPY's default OpenMP thread count. This respects
+            OMP_NUM_THREADS when set; otherwise, all available threads are used.
+            If given, it must be a positive integer.
         """
         super().__init__(metric=metric)
         if level_iters is None:
@@ -1159,6 +1188,12 @@ class SymmetricDiffeomorphicRegistration(DiffeomorphicRegistration):
 
         if len(level_iters) == 0:
             raise ValueError("The iterations list cannot be empty")
+
+        if num_threads is not None:
+            if not isinstance(num_threads, int):
+                raise TypeError("num_threads must be an int or None")
+            if num_threads < 1:
+                raise ValueError("num_threads must be a positive integer or None")
 
         self.set_level_iters(level_iters)
         self.step_length = step_length
@@ -1224,6 +1259,7 @@ class SymmetricDiffeomorphicRegistration(DiffeomorphicRegistration):
             disp_world2grid,
             time_scaling,
             current_displacement,
+            num_threads=self.num_threads,
         )
 
         return np.array(current_displacement), np.array(mean_norm)
@@ -1748,14 +1784,18 @@ class SymmetricDiffeomorphicRegistration(DiffeomorphicRegistration):
                 self.callback(self, RegistrationStages.SCALE_END)
 
         # Reporting mean and std in stats[1] and stats[2]
-        residual, stats = self.static_to_ref.compute_inversion_error()
+        residual, stats = self.static_to_ref.compute_inversion_error(
+            num_threads=self.num_threads
+        )
 
         if self.verbosity >= VerbosityLevels.DIAGNOSE:
             logger.info(
                 f"Static-Reference Residual error: {stats[1]:0.6f} ({stats[2]:0.6f})"
             )
 
-        residual, stats = self.moving_to_ref.compute_inversion_error()
+        residual, stats = self.moving_to_ref.compute_inversion_error(
+            num_threads=self.num_threads
+        )
 
         if self.verbosity >= VerbosityLevels.DIAGNOSE:
             logger.info(
@@ -1764,11 +1804,13 @@ class SymmetricDiffeomorphicRegistration(DiffeomorphicRegistration):
 
         # Compose the two partial transformations
         self.static_to_moving = self.moving_to_ref.warp_endomorphism(
-            self.static_to_ref.inverse()
+            self.static_to_ref.inverse(), num_threads=self.num_threads
         ).inverse()
 
         # Report mean and std for the composed deformation field
-        residual, stats = self.static_to_moving.compute_inversion_error()
+        residual, stats = self.static_to_moving.compute_inversion_error(
+            num_threads=self.num_threads
+        )
         if self.verbosity >= VerbosityLevels.DIAGNOSE:
             logger.info(f"Final residual error: {stats[1]:0.6f} ({stats[2]:0.6f})")
         if self.callback is not None:
