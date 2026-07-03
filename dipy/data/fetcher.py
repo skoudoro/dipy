@@ -47,6 +47,10 @@ MIRRORABLE_HOSTS = [
     "stacks.stanford.edu",
 ]
 
+# Github release mirror: release tag == local dataset folder name, asset name
+# == local filename, so this reproduces `~/.dipy/<folder>/<file>` 1:1.
+GITHUB_MIRROR_BASE = "https://github.com/dipy/dipy_datatest/releases/download"
+
 boto3, has_boto3, _ = optional_package("boto3")
 
 HEADER_LIST = [
@@ -203,6 +207,26 @@ def _get_mirror_url(original_url):
     return None
 
 
+def _get_github_mirror_url(fname):
+    """Github Release mirror URL derived from the local destination path.
+
+    Release tag == parent folder name; asset name == local filename, so a
+    release that mirrors `~/.dipy/<folder>/<file>` needs no per-file mapping.
+
+    Parameters
+    ----------
+    fname : str or Path
+        The local destination path the file is being downloaded to.
+
+    Returns
+    -------
+    str
+        Github release mirror URL for this file.
+    """
+    fname = Path(fname)
+    return f"{GITHUB_MIRROR_BASE}/{fname.parent.name}/{fname.name}"
+
+
 def _get_file_data(
     fname, url, *, use_headers=False, timeout=60, max_retries=5, stored_md5=None
 ):
@@ -229,8 +253,16 @@ def _get_file_data(
         If download fails after all retry attempts.
 
     """
-    # Check if mirror is available for this URL
+    # Build the ordered list of URLs to cycle through on retries: the
+    # original source, the workshop.dipy.org mirror (if applicable), and the
+    # github release mirror (if a release exists for this file).
+    candidates = [url]
     mirror_url = _get_mirror_url(url)
+    if mirror_url:
+        candidates.append(mirror_url)
+    github_url = _get_github_mirror_url(fname)
+    if github_url not in candidates:
+        candidates.append(github_url)
 
     is_figshare = "figshare.com" in url
     is_zenodo = "zenodo.org" in url
@@ -243,16 +275,12 @@ def _get_file_data(
 
     last_exception = None
     for attempt in range(max_retries):
-        # Alternate between original URL and mirror on retries
-        if mirror_url and attempt > 0:
-            # Use mirror on odd attempts, original on even attempts
-            current_url = mirror_url if attempt % 2 == 1 else url
-            if current_url == mirror_url:
-                logger.info(f"Trying mirror server: {mirror_url}")
-            else:
+        current_url = candidates[attempt % len(candidates)]
+        if attempt > 0:
+            if current_url == url:
                 logger.info(f"Retrying original URL: {url}")
-        else:
-            current_url = url
+            else:
+                logger.info(f"Trying fallback source: {current_url}")
 
         req = current_url
         if use_headers:
