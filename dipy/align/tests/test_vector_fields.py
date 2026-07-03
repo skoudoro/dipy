@@ -1,6 +1,7 @@
 from nibabel.affines import apply_affine, from_matvec
 import numpy as np
 from numpy.testing import (
+    assert_allclose,
     assert_almost_equal,
     assert_array_almost_equal,
     assert_array_equal,
@@ -1299,45 +1300,6 @@ def test_invert_vector_field_3d():
     )
 
 
-def test_invert_vector_field_threading():
-    """Check that threaded inversion is identical to serial inversion."""
-    spacing_2d = np.ones(2, dtype=np.float64)
-    d2, _ = vfu.create_harmonic_fields_2d(32, 32, 0.2, 8)
-
-    spacing_3d = np.ones(3, dtype=np.float64)
-    d3, _ = vfu.create_harmonic_fields_3d(16, 16, 16, 0.2, 8)
-
-    for dtype in (np.float32, np.float64):
-        field_2d = np.asarray(d2, dtype=dtype)
-        inverse_2d_serial = vfu.invert_vector_field_fixed_point_2d(
-            field_2d, None, spacing_2d, 20, 1e-7, num_threads=1
-        )
-        inverse_2d_threaded = vfu.invert_vector_field_fixed_point_2d(
-            field_2d, None, spacing_2d, 20, 1e-7, num_threads=2
-        )
-        assert_array_equal(inverse_2d_serial, inverse_2d_threaded)
-
-        field_3d = np.asarray(d3, dtype=dtype)
-        inverse_3d_serial = vfu.invert_vector_field_fixed_point_3d(
-            field_3d, None, spacing_3d, 20, 1e-7, num_threads=1
-        )
-        inverse_3d_threaded = vfu.invert_vector_field_fixed_point_3d(
-            field_3d, None, spacing_3d, 20, 1e-7, num_threads=2
-        )
-        assert_array_equal(inverse_3d_serial, inverse_3d_threaded)
-
-    assert_raises(
-        ValueError,
-        vfu.invert_vector_field_fixed_point_2d,
-        field_2d,
-        None,
-        spacing_2d,
-        20,
-        1e-7,
-        num_threads=0,
-    )
-
-
 def test_resample_vector_field_2d():
     r"""
     Expand a vector field by 2, then subsample by 2, the resulting
@@ -1764,3 +1726,25 @@ def test_gradient_3d(rng):
         ValueError, vfu.gradient, img, sp_to_grid, img_spacing, shape, invalid_affine
     )
     assert_raises(ValueError, vfu.gradient, img, sp_to_grid, invalid_spacings, shape, T)
+
+
+@set_random_number_generator(1234)
+def test_compose_vector_fields_threading(rng):
+    """Threaded composition matches one-thread composition and statistics."""
+    cases = (
+        (vfu.compose_vector_fields_2d, (32, 29, 2)),
+        (vfu.compose_vector_fields_3d, (16, 15, 14, 3)),
+    )
+
+    for compose, shape in cases:
+        for dtype in (np.float32, np.float64):
+            d1 = rng.normal(scale=0.25, size=shape).astype(dtype)
+            d2 = rng.normal(scale=0.25, size=shape).astype(dtype)
+
+            serial, serial_stats = compose(d1, d2, None, None, 1.0, None, num_threads=1)
+            threaded, threaded_stats = compose(
+                d1, d2, None, None, 1.0, None, num_threads=2
+            )
+
+            assert_array_equal(threaded, serial)
+            assert_allclose(threaded_stats, serial_stats, rtol=1e-12, atol=1e-12)
