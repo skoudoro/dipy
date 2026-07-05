@@ -363,6 +363,19 @@ def test_optimizer_exceptions():
     assert_raises(
         ValueError, imwarp.SymmetricDiffeomorphicRegistration, metric, level_iters=[]
     )
+    # The number of threads must be a positive integer when explicitly set
+    assert_raises(
+        TypeError,
+        imwarp.SymmetricDiffeomorphicRegistration,
+        metric,
+        num_threads=1.5,
+    )
+    assert_raises(
+        ValueError,
+        imwarp.SymmetricDiffeomorphicRegistration,
+        metric,
+        num_threads=-1,
+    )
 
     optimizer = imwarp.SymmetricDiffeomorphicRegistration(metric, level_iters=None)
     # Verify the default iterations list
