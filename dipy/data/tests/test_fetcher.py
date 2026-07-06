@@ -322,8 +322,8 @@ def test_get_mirror_url_no_double_slash():
     assert "//" not in path_part
 
 
-def test_get_github_mirror_url_derived_from_local_path():
-    fname = Path("/home/user/.dipy/histo_resdnn_weights/resdnn_weights_mri_2018.h5")
+def test_get_github_mirror_url_derived_from_local_path(tmp_path):
+    fname = tmp_path / "histo_resdnn_weights" / "resdnn_weights_mri_2018.h5"
     result = _get_github_mirror_url(fname)
     assert (
         result
@@ -331,8 +331,9 @@ def test_get_github_mirror_url_derived_from_local_path():
     )
 
 
-def test_get_github_mirror_url_accepts_str():
-    result = _get_github_mirror_url("/tmp/synb0/weights1.h5")
+def test_get_github_mirror_url_accepts_str(tmp_path):
+    fname = tmp_path / "synb0" / "weights1.h5"
+    result = _get_github_mirror_url(str(fname))
     assert result == f"{GITHUB_MIRROR_BASE}/synb0/weights1.h5"
 
 
