@@ -13,10 +13,12 @@ from dipy.data import SPHERE_FILES
 import dipy.data.fetcher as fetcher
 from dipy.data.fetcher import (
     DIPY_MIRROR_URL,
+    GITHUB_MIRROR_BASE,
     MIRRORABLE_HOSTS,
     FetcherError,
     _already_there_msg,
     _get_file_md5,
+    _get_github_mirror_url,
     _get_mirror_url,
     _make_fetcher,
     check_md5,
@@ -318,6 +320,21 @@ def test_get_mirror_url_no_double_slash():
     result = _get_mirror_url("https://zenodo.org/record/999/files/f.nii.gz")
     path_part = result.split(DIPY_MIRROR_URL, 1)[-1]
     assert "//" not in path_part
+
+
+def test_get_github_mirror_url_derived_from_local_path(tmp_path):
+    fname = tmp_path / "histo_resdnn_weights" / "resdnn_weights_mri_2018.h5"
+    result = _get_github_mirror_url(fname)
+    assert (
+        result
+        == f"{GITHUB_MIRROR_BASE}/histo_resdnn_weights/resdnn_weights_mri_2018.h5"
+    )
+
+
+def test_get_github_mirror_url_accepts_str(tmp_path):
+    fname = tmp_path / "synb0" / "weights1.h5"
+    result = _get_github_mirror_url(str(fname))
+    assert result == f"{GITHUB_MIRROR_BASE}/synb0/weights1.h5"
 
 
 def test_already_there_msg_str(tmp_path):
