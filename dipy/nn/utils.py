@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 from scipy.ndimage import affine_transform, map_coordinates
 
@@ -296,9 +298,7 @@ def get_padded_shape(shape, multiple):
     if multiple <= 0:
         raise ValueError("multiple must be greater than zero")
 
-    shape = np.asarray(shape, dtype=int)
-    padded_shape = ((shape + multiple - 1) // multiple) * multiple
-    return tuple(int(value) for value in padded_shape)
+    return tuple(math.ceil(int(dim) / multiple) * multiple for dim in shape)
 
 
 def pad_crop(image, target_shape):
