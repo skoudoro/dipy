@@ -280,7 +280,8 @@ def recover_img(image, params, *, order=3):
 
 
 def get_padded_shape(shape, multiple):
-    """Round each dimension of a shape up to a given multiple.
+    """Return the smallest shape greater than or equal to ``shape`` whose
+    dimensions are divisible by ``multiple``.
 
     Parameters
     ----------
