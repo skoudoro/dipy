@@ -36,8 +36,7 @@ def is_valid_affine(double[:, :] M, int dim):
 
 
 cdef void _merge_composition_stats(double[:, :] partial_stats,
-                                   double[:] stats,
-                                   int num_threads) noexcept nogil:
+                                   double[:] stats) noexcept nogil:
     r"""Merge per-thread composition statistics.
 
     Combines the per-thread accumulators produced during parallel composition
@@ -50,9 +49,6 @@ cdef void _merge_composition_stats(double[:, :] partial_stats,
         powers of norms, and maximum squared norm.
     stats : array, shape (3,)
         Output array where the merged composition statistics are written.
-    num_threads : int
-        Number of thread-local rows to merge.
-
     Returns
     -------
     stats : array, shape (3,)
@@ -61,6 +57,7 @@ cdef void _merge_composition_stats(double[:, :] partial_stats,
     """
     cdef:
         int tid
+        int num_threads = partial_stats.shape[0]
         double count = 0
         double max_norm_sq = 0
         double sum_norm_sq = 0
@@ -87,8 +84,7 @@ cdef void _compose_vector_fields_2d(floating[:, :, :] d1, floating[:, :, :] d2,
                                     double[:, :] premult_disp,
                                     double time_scaling,
                                     floating[:, :, :] comp,
-                                    double[:, :] partial_stats,
-                                    int num_threads) noexcept nogil:
+                                    double[:, :] partial_stats) noexcept nogil:
     r"""Computes the composition of two 2D displacement fields
 
     Computes the composition of the two 2-D displacements d1 and d2. The
@@ -129,9 +125,6 @@ cdef void _compose_vector_fields_2d(floating[:, :, :] d1, floating[:, :, :] d2,
     partial_stats : array, shape (num_threads, 4)
         on output, this array will contain the per-thread accumulators
         for count, sum, squared sum and maximum.
-    num_threads : int
-        number of OpenMP threads to use
-
     Returns
     -------
     comp : array, shape (R, C, 2), same dimension as d1
@@ -156,6 +149,7 @@ cdef void _compose_vector_fields_2d(floating[:, :, :] d1, floating[:, :, :] d2,
     cdef:
         cnp.npy_intp nr1 = d1.shape[0]
         cnp.npy_intp nc1 = d1.shape[1]
+        int num_threads = partial_stats.shape[0]
         int inside, tid
         double nn
         cnp.npy_intp i, j
@@ -289,8 +283,8 @@ def compose_vector_fields_2d(floating[:, :, :] d1, floating[:, :, :] d2,
 
     with nogil:
         _compose_vector_fields_2d[floating](d1, d2, premult_index, premult_disp,
-                                            time_scaling, comp, partial_stats, threads_to_use)
-        _merge_composition_stats(partial_stats, stats, threads_to_use)
+                                            time_scaling, comp, partial_stats)
+        _merge_composition_stats(partial_stats, stats)
     return np.asarray(comp), np.asarray(stats)
 
 
@@ -300,8 +294,7 @@ cdef void _compose_vector_fields_3d(floating[:, :, :, :] d1,
                                     double[:, :] premult_disp,
                                     double t,
                                     floating[:, :, :, :] comp,
-                                    double[:, :] partial_stats,
-                                    int num_threads) noexcept nogil:
+                                    double[:, :] partial_stats) noexcept nogil:
     r"""Computes the composition of two 3D displacement fields
 
     Computes the composition of the two 3-D displacements d1 and d2. The
@@ -342,9 +335,6 @@ cdef void _compose_vector_fields_3d(floating[:, :, :, :] d1,
     partial_stats : array, shape (num_threads, 4)
         on output, this array will contain the per-thread accumulators
         for count, sum, squared sum and maximum.
-    num_threads : int
-        number of OpenMP threads to use
-
     Returns
     -------
     comp : array, shape (S, R, C, 3), same dimension as d1
@@ -369,6 +359,7 @@ cdef void _compose_vector_fields_3d(floating[:, :, :, :] d1,
         cnp.npy_intp ns1 = d1.shape[0]
         cnp.npy_intp nr1 = d1.shape[1]
         cnp.npy_intp nc1 = d1.shape[2]
+        int num_threads = partial_stats.shape[0]
         int inside, tid
         double nn
         cnp.npy_intp i, j, k
@@ -519,9 +510,8 @@ def compose_vector_fields_3d(floating[:, :, :, :] d1, floating[:, :, :, :] d2,
 
     with nogil:
         _compose_vector_fields_3d[floating](d1, d2, premult_index, premult_disp,
-                                            time_scaling, comp, partial_stats, threads_to_use
-        )
-        _merge_composition_stats(partial_stats, stats, threads_to_use)
+                                            time_scaling, comp, partial_stats)
+        _merge_composition_stats(partial_stats, stats)
 
     return np.asarray(comp), np.asarray(stats)
 
@@ -618,7 +608,7 @@ def invert_vector_field_fixed_point_2d(floating[:, :, :] d,
                 partial_stats[tid, 3] = 0
 
             _compose_vector_fields_2d[floating](p, d, None, d_world2grid,
-                                                1.0, q, partial_stats, threads_to_use)
+                                                1.0, q, partial_stats)
             difmag = 0
             error = 0
             for i in range(nr):
@@ -736,7 +726,7 @@ def invert_vector_field_fixed_point_3d(floating[:, :, :, :] d,
                 partial_stats[tid, 3] = 0
 
             _compose_vector_fields_3d[floating](p, d, None, d_world2grid,
-                                                1.0, q, partial_stats, threads_to_use)
+                                                1.0, q, partial_stats)
             difmag = 0
             error = 0
             for k in range(ns):
