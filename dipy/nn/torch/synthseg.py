@@ -638,8 +638,8 @@ class SynthSeg:
         if batch_size is None:
             batch_size = 1
 
-        transformed_images = []
-        params_list = []
+        transformed_images = [None] * len(T1)
+        params_list = [None] * len(T1)
 
         # Resample the data to 1 mm isotropic resolution.
         ori_shape = T1.shape[1:]
@@ -650,8 +650,8 @@ class SynthSeg:
                 target_voxsize=(1.0, 1.0, 1.0),
                 order=3,
             )
-            transformed_images.append(t_img)
-            params_list.append(params)
+            transformed_images[i] = t_img
+            params_list[i] = params
 
         # Pad all images to a common shape compatible with SynthSeg.
         max_shape = np.max([img.shape for img in transformed_images], axis=0)
