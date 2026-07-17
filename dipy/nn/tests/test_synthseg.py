@@ -66,6 +66,35 @@ def test_default_weights_batch():
 
 
 @pytest.mark.skipif(not have_torch, reason="Requires Torch")
+def test_input_shapes(monkeypatch):
+    synthseg_model = synthseg.SynthSeg()
+
+    def mock_predict(img):
+        prediction = np.zeros(
+            (img.shape[0], 33) + tuple(img.shape[2:]), dtype=np.float32
+        )
+        prediction[:, 0] = 1
+        return prediction
+
+    monkeypatch.setattr(synthseg_model, "_SynthSeg__predict", mock_predict)
+
+    shape_cases = [
+        ((17, 25, 31), (32, 32, 32)),
+        ((32, 48, 64), (32, 64, 64)),
+        ((34, 47, 65), (64, 64, 64)),
+    ]
+    for shape, model_shape in shape_cases:
+        input_arr = np.arange(np.prod(shape), dtype=np.float32).reshape(shape)
+
+        labels, _, mask = synthseg_model.predict(input_arr, np.eye(4))
+        npt.assert_equal(labels.shape, shape)
+        npt.assert_equal(mask.shape, shape)
+
+        probabilities = synthseg_model.predict(input_arr, np.eye(4), return_prob=True)
+        npt.assert_equal(probabilities.shape, model_shape + (33,))
+
+
+@pytest.mark.skipif(not have_torch, reason="Requires Torch")
 def test_T1_error():
     T1 = np.ones((3, 32, 32, 32))
     synthseg_model = synthseg.SynthSeg()
