@@ -174,7 +174,7 @@ jobs:
         with:
           name: wheels-ubuntu-latest
           path: ./dist
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - name: Test wheel
