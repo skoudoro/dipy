@@ -2,7 +2,13 @@ import warnings
 
 import numpy as np
 
-from dipy.nn.utils import normalize, recover_img, transform_img, unnormalize
+from dipy.nn.utils import (
+    get_padded_shape,
+    normalize,
+    recover_img,
+    transform_img,
+    unnormalize,
+)
 from dipy.testing.decorators import set_random_number_generator
 
 
@@ -34,3 +40,18 @@ def test_transform(rng=None):
         )
         temp2 = recover_img(temp2, params)
     np.testing.assert_almost_equal(np.array(temp.shape), np.array(temp2.shape))
+
+
+def test_get_padded_shape():
+    cases = [
+        ((32, 64, 96), 32, (32, 64, 96)),
+        ((33, 65, 95), 32, (64, 96, 96)),
+        ((1, 31, 32), 32, (32, 32, 32)),
+        ((5, 10), 4, (8, 12)),
+    ]
+
+    for shape, multiple, expected_shape in cases:
+        np.testing.assert_equal(get_padded_shape(shape, multiple), expected_shape)
+
+    for multiple in [0, -1]:
+        np.testing.assert_raises(ValueError, get_padded_shape, (32, 32, 32), multiple)
