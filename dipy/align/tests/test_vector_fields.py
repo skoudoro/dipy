@@ -1,6 +1,7 @@
 from nibabel.affines import apply_affine, from_matvec
 import numpy as np
 from numpy.testing import (
+    assert_allclose,
     assert_almost_equal,
     assert_array_almost_equal,
     assert_array_equal,
@@ -1725,3 +1726,25 @@ def test_gradient_3d(rng):
         ValueError, vfu.gradient, img, sp_to_grid, img_spacing, shape, invalid_affine
     )
     assert_raises(ValueError, vfu.gradient, img, sp_to_grid, invalid_spacings, shape, T)
+
+
+@set_random_number_generator(1234)
+def test_compose_vector_fields_threading(rng):
+    """Threaded composition matches one-thread composition and statistics."""
+    cases = (
+        (vfu.compose_vector_fields_2d, (32, 29, 2)),
+        (vfu.compose_vector_fields_3d, (16, 15, 14, 3)),
+    )
+
+    for compose, shape in cases:
+        for dtype in (np.float32, np.float64):
+            d1 = rng.normal(scale=0.25, size=shape).astype(dtype)
+            d2 = rng.normal(scale=0.25, size=shape).astype(dtype)
+
+            serial, serial_stats = compose(d1, d2, None, None, 1.0, None, num_threads=1)
+            threaded, threaded_stats = compose(
+                d1, d2, None, None, 1.0, None, num_threads=2
+            )
+
+            assert_array_equal(threaded, serial)
+            assert_allclose(threaded_stats, serial_stats, rtol=1e-12, atol=1e-12)

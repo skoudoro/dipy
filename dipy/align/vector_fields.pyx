@@ -6,6 +6,8 @@
 import numpy as np
 cimport numpy as cnp
 
+from cython.parallel cimport prange, threadid
+
 from dipy.align.fused_types cimport floating, number
 from dipy.core.interpolation cimport (_interpolate_scalar_2d,
                                       _interpolate_scalar_3d,
@@ -13,6 +15,7 @@ from dipy.core.interpolation cimport (_interpolate_scalar_2d,
                                       _interpolate_vector_3d,
                                       _interpolate_scalar_nn_2d,
                                       _interpolate_scalar_nn_3d)
+from dipy.utils.omp import determine_num_threads
 
 
 cdef extern from "dpy_math.h" nogil:
@@ -32,12 +35,56 @@ def is_valid_affine(double[:, :] M, int dim):
     return True
 
 
+cdef void _merge_composition_stats(double[:, :] partial_stats,
+                                   double[:] stats) noexcept nogil:
+    r"""Merge per-thread composition statistics.
+
+    Combines the per-thread accumulators produced during parallel composition
+    into the final statistics array.
+
+    Parameters
+    ----------
+    partial_stats : array, shape (num_threads, 4)
+        Per-thread accumulators for count, sum of squared norms, sum of fourth
+        powers of norms, and maximum squared norm.
+    stats : array, shape (3,)
+        Output array where the merged composition statistics are written.
+    Returns
+    -------
+    stats : array, shape (3,)
+        On output, contains the maximum norm, root-mean-square norm, and the
+        historical dispersion statistic.
+    """
+    cdef:
+        int tid
+        int num_threads = partial_stats.shape[0]
+        double count = 0
+        double max_norm_sq = 0
+        double sum_norm_sq = 0
+        double sum_norm_fourth = 0
+        double mean_norm_sq
+
+    for tid in range(num_threads):
+        count += partial_stats[tid, 0]
+        sum_norm_sq += partial_stats[tid, 1]
+        sum_norm_fourth += partial_stats[tid, 2]
+        if max_norm_sq < partial_stats[tid, 3]:
+            max_norm_sq = partial_stats[tid, 3]
+
+    mean_norm_sq = sum_norm_sq / count
+    stats[0] = sqrt(max_norm_sq)
+    stats[1] = sqrt(mean_norm_sq)
+    stats[2] = sqrt(
+        sum_norm_fourth / count - mean_norm_sq * mean_norm_sq
+    )
+
+
 cdef void _compose_vector_fields_2d(floating[:, :, :] d1, floating[:, :, :] d2,
                                     double[:, :] premult_index,
                                     double[:, :] premult_disp,
                                     double time_scaling,
                                     floating[:, :, :] comp,
-                                    double[:] stats) noexcept nogil:
+                                    double[:, :] partial_stats) noexcept nogil:
     r"""Computes the composition of two 2D displacement fields
 
     Computes the composition of the two 2-D displacements d1 and d2. The
@@ -75,44 +122,41 @@ cdef void _compose_vector_fields_2d(floating[:, :, :] d1, floating[:, :, :] d2,
         this corresponds to the time scaling 't' in the above explanation
     comp : array, shape (R, C, 2), same dimension as d1
         on output, this array will contain the composition of the two fields
-    stats : array, shape (3,)
-        on output, this array will contain three statistics of the vector norms
-        of the composition (maximum, mean, standard_deviation)
-
+    partial_stats : array, shape (num_threads, 4)
+        on output, this array will contain the per-thread accumulators
+        for count, sum, squared sum and maximum.
     Returns
     -------
     comp : array, shape (R, C, 2), same dimension as d1
         on output, this array will contain the composition of the two fields
-    stats : array, shape (3,)
-        on output, this array will contain three statistics of the vector norms
-        of the composition (maximum, mean, standard_deviation)
+    partial_stats : array, shape (num_threads, 4)
+        on output, this array will contain the per-thread accumulators
+        for count, sum, squared sum and maximum.
 
     Notes
     -----
     If d1[r,c] lies outside the domain of d2, then comp[r,c] will contain a
     zero vector.
 
-    Warning: it is possible to use the same array reference for d1 and comp to
+    It is possible to use the same array reference for d1 and comp to
     effectively update d1 to the composition of d1 and d2 because previously
     updated values from d1 are no longer used (this is done to save memory and
-    time). However, using the same array for d2 and comp may not be the
-    intended operation (see comment below).
+    time). However, d2 and comp must not share memory: the same d2 value may
+    be reused to interpolate several output vectors, so overwriting it could
+    change outputs computed later.
 
     """
     cdef:
         cnp.npy_intp nr1 = d1.shape[0]
         cnp.npy_intp nc1 = d1.shape[1]
-        cnp.npy_intp nr2 = d2.shape[0]
-        cnp.npy_intp nc2 = d2.shape[1]
-        int inside, cnt = 0
-        double maxNorm = 0
-        double meanNorm = 0
-        double stdNorm = 0
+        int num_threads = partial_stats.shape[0]
+        int inside, tid
         double nn
         cnp.npy_intp i, j
         double di, dj, dii, djj, diii, djjj
 
-    for i in range(nr1):
+    for i in prange(nr1, schedule="static", num_threads=num_threads):
+        tid = threadid()
         for j in range(nc1):
 
             # This is the only place we access d1[i, j]
@@ -133,14 +177,13 @@ cdef void _compose_vector_fields_2d(floating[:, :, :] d1, floating[:, :, :] d2,
                 diii = _apply_affine_2d_x0(<double>i, <double>j, 1, premult_index)
                 djjj = _apply_affine_2d_x1(<double>i, <double>j, 1, premult_index)
 
-            diii += di
-            djjj += dj
+            diii = diii + di
+            djjj = djjj + dj
 
             # If d1 and comp are the same array, this will correctly update
             # d1[i,j], which will never be accessed again
-            # If d2 and comp are the same array, then (diii, djjj) may be
-            # in the neighborhood of a previously updated vector from d2,
-            # which may be problematic
+            # A d2 value may be reused by several interpolations, so d2 must
+            # remain unchanged while comp is written
             inside = _interpolate_vector_2d[floating](d2, diii, djjj,
                                                       &comp[i, j, 0])
 
@@ -148,26 +191,22 @@ cdef void _compose_vector_fields_2d(floating[:, :, :] d1, floating[:, :, :] d2,
                 comp[i, j, 0] = time_scaling * comp[i, j, 0] + dii
                 comp[i, j, 1] = time_scaling * comp[i, j, 1] + djj
                 nn = comp[i, j, 0] ** 2 + comp[i, j, 1] ** 2
-                meanNorm += nn
-                stdNorm += nn * nn
-                cnt += 1
-                if maxNorm < nn:
-                    maxNorm = nn
+                partial_stats[tid, 0] += 1
+                partial_stats[tid, 1] += nn
+                partial_stats[tid, 2] += nn * nn
+                if partial_stats[tid, 3] < nn:
+                    partial_stats[tid, 3] = nn
             else:
                 comp[i, j, 0] = 0
                 comp[i, j, 1] = 0
-
-    meanNorm /= cnt
-    stats[0] = sqrt(maxNorm)
-    stats[1] = sqrt(meanNorm)
-    stats[2] = sqrt(stdNorm / cnt - meanNorm * meanNorm)
 
 
 def compose_vector_fields_2d(floating[:, :, :] d1, floating[:, :, :] d2,
                              double[:, :] premult_index,
                              double[:, :] premult_disp,
                              double time_scaling,
-                             floating[:, :, :] comp):
+                             floating[:, :, :] comp,
+                             num_threads=None):
     r"""Computes the composition of two 2D displacement fields
 
     Computes the composition of the two 2-D displacements d1 and d2. The
@@ -205,7 +244,12 @@ def compose_vector_fields_2d(floating[:, :, :] d1, floating[:, :, :] d2,
         this corresponds to the time scaling 't' in the above explanation
     comp : array, shape (R, C, 2)
         the buffer to write the composition to. If None, the buffer is created
-        internally
+        internally. It may be the same array as d1 for an in-place update, but
+        it must not share memory with d2. A d2 value may be reused to
+        interpolate several output vectors and must remain unchanged.
+    num_threads : int or None, optional
+        Number of threads to use. If None, use DIPY's default OpenMP thread
+        count.
 
     Returns
     -------
@@ -213,10 +257,18 @@ def compose_vector_fields_2d(floating[:, :, :] d1, floating[:, :, :] d2,
         on output, this array will contain the composition of the two fields
     stats : array, shape (3,)
         on output, this array will contain three statistics of the vector norms
-        of the composition (maximum, mean, standard_deviation)
+        of the composition (maximum, mean, standard_deviation).
     """
     cdef:
+        int threads_to_use
         double[:] stats = np.zeros(shape=(3,), dtype=np.float64)
+        double[:, :] partial_stats
+
+    if comp is not None and np.shares_memory(np.asarray(comp), np.asarray(d2)):
+        raise ValueError(
+            "comp must not share memory with d2 because d2 values may be "
+            "reused to interpolate multiple output vectors"
+        )
 
     if comp is None:
         comp = np.zeros_like(d1)
@@ -226,8 +278,13 @@ def compose_vector_fields_2d(floating[:, :, :] d1, floating[:, :, :] d2,
     if not is_valid_affine(premult_disp, 2):
         raise ValueError("Invalid displacement multiplication matrix")
 
-    _compose_vector_fields_2d[floating](d1, d2, premult_index, premult_disp,
-                                        time_scaling, comp, stats)
+    threads_to_use = determine_num_threads(num_threads)
+    partial_stats = np.zeros(shape=(threads_to_use, 4), dtype=np.float64)
+
+    with nogil:
+        _compose_vector_fields_2d[floating](d1, d2, premult_index, premult_disp,
+                                            time_scaling, comp, partial_stats)
+        _merge_composition_stats(partial_stats, stats)
     return np.asarray(comp), np.asarray(stats)
 
 
@@ -237,7 +294,7 @@ cdef void _compose_vector_fields_3d(floating[:, :, :, :] d1,
                                     double[:, :] premult_disp,
                                     double t,
                                     floating[:, :, :, :] comp,
-                                    double[:] stats) noexcept nogil:
+                                    double[:, :] partial_stats) noexcept nogil:
     r"""Computes the composition of two 3D displacement fields
 
     Computes the composition of the two 3-D displacements d1 and d2. The
@@ -275,44 +332,40 @@ cdef void _compose_vector_fields_3d(floating[:, :, :, :] d1,
         this corresponds to the time scaling 't' in the above explanation
     comp : array, shape (S, R, C, 3), same dimension as d1
         on output, this array will contain the composition of the two fields
-    stats : array, shape (3,)
-        on output, this array will contain three statistics of the vector norms
-        of the composition (maximum, mean, standard_deviation)
-
+    partial_stats : array, shape (num_threads, 4)
+        on output, this array will contain the per-thread accumulators
+        for count, sum, squared sum and maximum.
     Returns
     -------
     comp : array, shape (S, R, C, 3), same dimension as d1
         on output, this array will contain the composition of the two fields
-    stats : array, shape (3,)
-        on output, this array will contain three statistics of the vector norms
-        of the composition (maximum, mean, standard_deviation)
+    partial_stats : array, shape (num_threads, 4)
+        on output, this array will contain the per-thread accumulators
+        for count, sum, squared sum and maximum.
 
     Notes
     -----
     If d1[s,r,c] lies outside the domain of d2, then comp[s,r,c] will contain
     a zero vector.
 
-    Warning: it is possible to use the same array reference for d1 and comp to
+    It is possible to use the same array reference for d1 and comp to
     effectively update d1 to the composition of d1 and d2 because previously
     updated values from d1 are no longer used (this is done to save memory and
-    time). However, using the same array for d2 and comp may not be the
-    intended operation (see comment below).
+    time). However, d2 and comp must not share memory: the same d2 value may
+    be reused to interpolate several output vectors, so overwriting it could
+    change outputs computed later.
     """
     cdef:
         cnp.npy_intp ns1 = d1.shape[0]
         cnp.npy_intp nr1 = d1.shape[1]
         cnp.npy_intp nc1 = d1.shape[2]
-        cnp.npy_intp ns2 = d2.shape[0]
-        cnp.npy_intp nr2 = d2.shape[1]
-        cnp.npy_intp nc2 = d2.shape[2]
-        int inside, cnt = 0
-        double maxNorm = 0
-        double meanNorm = 0
-        double stdNorm = 0
+        int num_threads = partial_stats.shape[0]
+        int inside, tid
         double nn
         cnp.npy_intp i, j, k
         double di, dj, dk, dii, djj, dkk, diii, djjj, dkkk
-    for k in range(ns1):
+    for k in prange(ns1, schedule="static", num_threads=num_threads):
+        tid = threadid()
         for i in range(nr1):
             for j in range(nc1):
 
@@ -339,15 +392,14 @@ cdef void _compose_vector_fields_3d(floating[:, :, :, :] d1,
                     diii = _apply_affine_3d_x1(<double>k, <double>i, <double>j, 1, premult_index)
                     djjj = _apply_affine_3d_x2(<double>k, <double>i, <double>j, 1, premult_index)
 
-                dkkk += dk
-                diii += di
-                djjj += dj
+                dkkk = dkkk + dk
+                diii = diii + di
+                djjj = djjj + dj
 
                 # If d1 and comp are the same array, this will correctly update
                 # d1[k,i,j], which will never be accessed again
-                # If d2 and comp are the same array, then (dkkk, diii, djjj)
-                # may be in the neighborhood of a previously updated vector
-                # from d2, which may be problematic
+                # A d2 value may be reused by several interpolations, so d2
+                # must remain unchanged while comp is written
                 inside = _interpolate_vector_3d[floating](d2, dkkk, diii, djjj,
                                                           &comp[k, i, j, 0])
 
@@ -355,28 +407,28 @@ cdef void _compose_vector_fields_3d(floating[:, :, :, :] d1,
                     comp[k, i, j, 0] = t * comp[k, i, j, 0] + dkk
                     comp[k, i, j, 1] = t * comp[k, i, j, 1] + dii
                     comp[k, i, j, 2] = t * comp[k, i, j, 2] + djj
-                    nn = (comp[k, i, j, 0] ** 2 + comp[k, i, j, 1] ** 2 +
-                          comp[k, i, j, 2]**2)
-                    meanNorm += nn
-                    stdNorm += nn * nn
-                    cnt += 1
-                    if maxNorm < nn:
-                        maxNorm = nn
+                    nn = (
+                        comp[k, i, j, 0] ** 2
+                        + comp[k, i, j, 1] ** 2
+                        + comp[k, i, j, 2] ** 2
+                    )
+                    partial_stats[tid, 0] += 1
+                    partial_stats[tid, 1] += nn
+                    partial_stats[tid, 2] += nn * nn
+                    if partial_stats[tid, 3] < nn:
+                        partial_stats[tid, 3] = nn
                 else:
                     comp[k, i, j, 0] = 0
                     comp[k, i, j, 1] = 0
                     comp[k, i, j, 2] = 0
-    meanNorm /= cnt
-    stats[0] = sqrt(maxNorm)
-    stats[1] = sqrt(meanNorm)
-    stats[2] = sqrt(stdNorm / cnt - meanNorm * meanNorm)
 
 
 def compose_vector_fields_3d(floating[:, :, :, :] d1, floating[:, :, :, :] d2,
                              double[:, :] premult_index,
                              double[:, :] premult_disp,
                              double time_scaling,
-                             floating[:, :, :, :] comp):
+                             floating[:, :, :, :] comp,
+                             num_threads=None):
     r"""Computes the composition of two 3D displacement fields
 
     Computes the composition of the two 3-D displacements d1 and d2. The
@@ -414,7 +466,12 @@ def compose_vector_fields_3d(floating[:, :, :, :] d1, floating[:, :, :, :] d2,
         this corresponds to the time scaling 't' in the above explanation
     comp : array, shape (S, R, C, 3), same dimension as d1
         the buffer to write the composition to. If None, the buffer will be
-        created internally
+        created internally. It may be the same array as d1 for an in-place
+        update, but it must not share memory with d2. A d2 value may be reused
+        to interpolate several output vectors and must remain unchanged.
+    num_threads : int or None, optional
+        Number of threads to use. If None, use DIPY's default OpenMP thread
+        count.
 
     Returns
     -------
@@ -422,7 +479,7 @@ def compose_vector_fields_3d(floating[:, :, :, :] d1, floating[:, :, :, :] d2,
         on output, this array will contain the composition of the two fields
     stats : array, shape (3,)
         on output, this array will contain three statistics of the vector norms
-        of the composition (maximum, mean, standard_deviation)
+        of the composition (maximum, mean, standard_deviation).
 
     Notes
     -----
@@ -430,7 +487,15 @@ def compose_vector_fields_3d(floating[:, :, :, :] d1, floating[:, :, :, :] d2,
     a zero vector.
     """
     cdef:
+        int threads_to_use
         double[:] stats = np.zeros(shape=(3,), dtype=np.float64)
+        double[:, :] partial_stats
+
+    if comp is not None and np.shares_memory(np.asarray(comp), np.asarray(d2)):
+        raise ValueError(
+            "comp must not share memory with d2 because d2 values may be "
+            "reused to interpolate multiple output vectors"
+        )
 
     if comp is None:
         comp = np.zeros_like(d1)
@@ -440,8 +505,14 @@ def compose_vector_fields_3d(floating[:, :, :, :] d1, floating[:, :, :, :] d2,
     if not is_valid_affine(premult_disp, 3):
         raise ValueError("Invalid displacement pre-multiplication matrix")
 
-    _compose_vector_fields_3d[floating](d1, d2, premult_index, premult_disp,
-                                        time_scaling, comp, stats)
+    threads_to_use = determine_num_threads(num_threads)
+    partial_stats = np.zeros(shape=(threads_to_use, 4), dtype=np.float64)
+
+    with nogil:
+        _compose_vector_fields_3d[floating](d1, d2, premult_index, premult_disp,
+                                            time_scaling, comp, partial_stats)
+        _merge_composition_stats(partial_stats, stats)
+
     return np.asarray(comp), np.asarray(stats)
 
 
@@ -449,7 +520,8 @@ def invert_vector_field_fixed_point_2d(floating[:, :, :] d,
                                        double[:, :] d_world2grid,
                                        double[:] spacing,
                                        int max_iter, double tolerance,
-                                       floating[:, :, :] start=None):
+                                       floating[:, :, :] start=None,
+                                       num_threads=None):
     r"""Computes the inverse of a 2D displacement fields
 
     Computes the inverse of the given 2-D displacement field d using the
@@ -477,6 +549,10 @@ def invert_vector_field_fixed_point_2d(floating[:, :, :] d,
         an approximation to the inverse displacement field (if no approximation
         is available, None can be provided and the start displacement field
         will be zero)
+    num_threads : int or None, optional
+        Number of threads to use for the inversion. If None, the value of the
+        ``OMP_NUM_THREADS`` environment variable is used if set; otherwise,
+        all available threads are used.
 
     Returns
     -------
@@ -494,17 +570,16 @@ def invert_vector_field_fixed_point_2d(floating[:, :, :] d,
     cdef:
         cnp.npy_intp nr = d.shape[0]
         cnp.npy_intp nc = d.shape[1]
-        int iter_count, current, flag
+        cnp.npy_intp i, j, tid
+        int iter_count, threads_to_use
         double difmag, mag, maxlen, step_factor
         double epsilon
         double error = 1 + tolerance
-        double di, dj, dii, djj
         double sr = spacing[0], sc = spacing[1]
+        double[:, :] partial_stats
 
     ftype = np.asarray(d).dtype
     cdef:
-        double[:] stats = np.zeros(shape=(2,), dtype=np.float64)
-        double[:] substats = np.empty(shape=(3,), dtype=np.float64)
         double[:, :] norms = np.zeros(shape=(nr, nc), dtype=np.float64)
         floating[:, :, :] p = np.zeros(shape=(nr, nc, 2), dtype=ftype)
         floating[:, :, :] q = np.zeros(shape=(nr, nc, 2), dtype=ftype)
@@ -515,6 +590,9 @@ def invert_vector_field_fixed_point_2d(floating[:, :, :] d,
     if start is not None:
         p[...] = start
 
+    threads_to_use = determine_num_threads(num_threads)
+    partial_stats = np.zeros(shape=(threads_to_use, 4), dtype=np.float64)
+
     with nogil:
         iter_count = 0
         while (iter_count < max_iter) and (tolerance < error):
@@ -522,8 +600,15 @@ def invert_vector_field_fixed_point_2d(floating[:, :, :] d,
                 epsilon = 0.75
             else:
                 epsilon = 0.5
+
+            for tid in range(threads_to_use):
+                partial_stats[tid, 0] = 0
+                partial_stats[tid, 1] = 0
+                partial_stats[tid, 2] = 0
+                partial_stats[tid, 3] = 0
+
             _compose_vector_fields_2d[floating](p, d, None, d_world2grid,
-                                                1.0, q, substats)
+                                                1.0, q, partial_stats)
             difmag = 0
             error = 0
             for i in range(nr):
@@ -544,8 +629,6 @@ def invert_vector_field_fixed_point_2d(floating[:, :, :] d,
                     p[i, j, 1] = p[i, j, 1] - step_factor * q[i, j, 1]
             error /= (nr * nc)
             iter_count += 1
-        stats[0] = substats[1]
-        stats[1] = iter_count
     return np.asarray(p)
 
 
@@ -553,7 +636,8 @@ def invert_vector_field_fixed_point_3d(floating[:, :, :, :] d,
                                        double[:, :] d_world2grid,
                                        double[:] spacing,
                                        int max_iter, double tol,
-                                       floating[:, :, :, :] start=None):
+                                       floating[:, :, :, :] start=None,
+                                       num_threads=None):
     r"""Computes the inverse of a 3D displacement fields
 
     Computes the inverse of the given 3-D displacement field d using the
@@ -581,6 +665,10 @@ def invert_vector_field_fixed_point_3d(floating[:, :, :, :] d,
         an approximation to the inverse displacement field (if no approximation
         is available, None can be provided and the start displacement field
         will be zero)
+    num_threads : int or None, optional
+        Number of threads to use for the inversion. If None, the value of the
+        ``OMP_NUM_THREADS`` environment variable is used if set; otherwise,
+        all available threads are used.
 
     Returns
     -------
@@ -599,17 +687,16 @@ def invert_vector_field_fixed_point_3d(floating[:, :, :, :] d,
         cnp.npy_intp ns = d.shape[0]
         cnp.npy_intp nr = d.shape[1]
         cnp.npy_intp nc = d.shape[2]
-        int iter_count, current
-        double dkk, dii, djj, dk, di, dj
+        cnp.npy_intp k, i, j, tid
+        int iter_count, threads_to_use
         double difmag, mag, maxlen, step_factor
         double epsilon = 0.5
         double error = 1 + tol
         double ss = spacing[0], sr = spacing[1], sc = spacing[2]
+        double[:, :] partial_stats
 
     ftype = np.asarray(d).dtype
     cdef:
-        double[:] stats = np.zeros(shape=(2,), dtype=np.float64)
-        double[:] substats = np.zeros(shape=(3,), dtype=np.float64)
         double[:, :, :] norms = np.zeros(shape=(ns, nr, nc), dtype=np.float64)
         floating[:, :, :, :] p = np.zeros(shape=(ns, nr, nc, 3), dtype=ftype)
         floating[:, :, :, :] q = np.zeros(shape=(ns, nr, nc, 3), dtype=ftype)
@@ -620,6 +707,9 @@ def invert_vector_field_fixed_point_3d(floating[:, :, :, :] d,
     if start is not None:
         p[...] = start
 
+    threads_to_use = determine_num_threads(num_threads)
+    partial_stats = np.zeros(shape=(threads_to_use, 4), dtype=np.float64)
+
     with nogil:
         iter_count = 0
         difmag = 1
@@ -628,8 +718,15 @@ def invert_vector_field_fixed_point_3d(floating[:, :, :, :] d,
                 epsilon = 0.75
             else:
                 epsilon = 0.5
+
+            for tid in range(threads_to_use):
+                partial_stats[tid, 0] = 0
+                partial_stats[tid, 1] = 0
+                partial_stats[tid, 2] = 0
+                partial_stats[tid, 3] = 0
+
             _compose_vector_fields_3d[floating](p, d, None, d_world2grid,
-                                                1.0, q, substats)
+                                                1.0, q, partial_stats)
             difmag = 0
             error = 0
             for k in range(ns):
@@ -658,8 +755,6 @@ def invert_vector_field_fixed_point_3d(floating[:, :, :, :] d,
                                          step_factor * q[k, i, j, 2])
             error /= (ns * nr * nc)
             iter_count += 1
-        stats[0] = error
-        stats[1] = iter_count
     return np.asarray(p)
 
 
