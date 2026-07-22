@@ -1,9 +1,16 @@
 """Tests for FORCE reconstruction module."""
 
+from concurrent.futures import ThreadPoolExecutor
+import types
+
 import numpy as np
+import numpy.testing as npt
 from numpy.testing import assert_almost_equal, assert_array_less
 
+from dipy.core.gradients import gradient_table
+from dipy.data import default_sphere
 from dipy.reconst.force import (
+    FORCEModel,
     SignalIndex,
     _fwhm_kde_batch,
     _weighted_percentile,
@@ -233,3 +240,76 @@ def test_compute_microstructure_uncertainty_ambiguity_different_ranges():
     # Larger prior range should give smaller normalized values
     assert unc_large[0] < unc_small[0]
     assert amb_large[0] < amb_small[0]
+
+
+def _tiny_model(n_sims=64, n_grad=12, seed=0):
+    """A FORCEModel backed by a small hand-made library (no generation)."""
+    rng = np.random.default_rng(seed)
+    bvals = np.concatenate(([0.0], np.full(n_grad - 1, 1000.0)))
+    bvecs = np.zeros((n_grad, 3))
+    bvecs[1:, 0] = 1.0
+
+    sims = {
+        "signals": rng.random((n_sims, n_grad)).astype(np.float32) + 0.5,
+        "labels": np.zeros((n_sims, len(default_sphere.vertices)), dtype=np.uint8),
+        "num_fibers": np.ones(n_sims, dtype=np.float32),
+        "fraction_array": rng.random((n_sims, 3)).astype(np.float32),
+    }
+    for key in (
+        "fa",
+        "md",
+        "rd",
+        "wm_fraction",
+        "gm_fraction",
+        "csf_fraction",
+        "dispersion",
+        "nd",
+    ):
+        sims[key] = rng.random(n_sims).astype(np.float32)
+
+    gtab = gradient_table(bvals, bvecs=bvecs)
+    return FORCEModel(gtab, simulations=sims, n_neighbors=8), sims
+
+
+def test_micro_postprocessing_serial_inside_ray_worker(monkeypatch):
+    """The per-parameter loop uses threads normally, but not inside a Ray worker.
+
+    Also checks both paths produce the same uncertainty and ambiguity maps.
+    """
+    model, sims = _tiny_model()
+    query = sims["signals"][:12]
+
+    pool_uses = []
+
+    def spy(*args, **kwargs):
+        pool_uses.append(kwargs.get("max_workers"))
+        return ThreadPoolExecutor(*args, **kwargs)
+
+    monkeypatch.setattr("dipy.reconst.force.ThreadPoolExecutor", spy)
+    # Pin the core count so the threaded path does not depend on runner size.
+    monkeypatch.setattr(
+        "dipy.reconst.force.get_usable_cpu_affinity", lambda: {0, 1, 2, 3}
+    )
+
+    # Outside a Ray worker the loop is threaded. Force the flag rather than
+    # relying on ambient state: another test may have left Ray initialised,
+    # since paramap never shuts it down.
+    monkeypatch.setattr("dipy.reconst.force.has_ray", False)
+    threaded = model.fit(query)
+    assert pool_uses, "expected the thread pool to be used outside a Ray worker"
+
+    # Inside a live Ray worker it stays serial.
+    pool_uses.clear()
+    monkeypatch.setattr("dipy.reconst.force.has_ray", True)
+    monkeypatch.setattr(
+        "dipy.reconst.force.ray", types.SimpleNamespace(is_initialized=lambda: True)
+    )
+    serial = model.fit(query)
+    assert not pool_uses, "expected no thread pool inside a Ray worker"
+
+    for param in ("fa", "nd"):
+        for metric in ("uncertainty", "ambiguity"):
+            npt.assert_array_equal(
+                np.asarray(getattr(threaded, f"{metric}_{param}")),
+                np.asarray(getattr(serial, f"{metric}_{param}")),
+            )
