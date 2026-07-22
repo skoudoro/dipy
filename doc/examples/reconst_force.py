@@ -64,9 +64,23 @@ print(f"mask shape: {mask.shape}, brain voxels: {mask.sum()}")
 # parameters; the simulation library is created separately via ``generate()``.
 #
 # * ``n_neighbors`` — number of library entries to retrieve per voxel query.
+# * ``penalty`` — fiber-complexity penalty subtracted from the match score,
+#   scaled by the number of fibers. Larger values bias the match towards
+#   simpler configurations.
 # * ``use_posterior`` — when ``True``, parameters are averaged over the
 #   ``n_neighbors`` nearest entries weighted by a softmax posterior; when
 #   ``False`` (default) only the single best-match entry is used.
+# * ``posterior_beta`` — softmax temperature of that posterior. Larger values
+#   concentrate the weights on the closest matches.
+# * ``compute_odf`` — when ``True``, a posterior ODF is assembled per voxel and
+#   exposed as ``fit.odf``.
+#
+# The posterior over the ``n_neighbors`` matches is always computed, even when
+# ``use_posterior=False``. That flag only decides where the *point estimates*
+# come from: the posterior mean, or the single best match. The uncertainty and
+# ambiguity maps shown further below are derived from the posterior either way.
+# The one exception is ``fit.entropy``, the entropy of the posterior weights,
+# which is only meaningful in posterior mode and is ``NaN`` otherwise.
 
 from dipy.reconst.force import FORCEModel, force_peaks
 
@@ -223,8 +237,12 @@ image_mosaic(
 #
 # FORCE also reports, for each microstructure parameter, an **uncertainty** map
 # (spread of the posterior) and an **ambiguity** map (multi-modality of the
-# posterior), both normalised to the prior range. Below we show them for the
-# NODDI parameters NDI and ODI.
+# posterior), both normalised to the prior range. They are available per
+# parameter as ``fit.uncertainty_<param>`` and ``fit.ambiguity_<param>``, for
+# example ``fit.uncertainty_fa`` or ``fit.ambiguity_wm_fraction``, alongside
+# the voxel-level ``fit.uncertainty`` and ``fit.ambiguity``. As noted above,
+# these come from the posterior regardless of ``use_posterior``. Below we show
+# them for the NODDI parameters NDI and ODI.
 
 image_mosaic(
     [
@@ -243,8 +261,32 @@ image_mosaic(
 ###############################################################################
 # .. rst-class:: centered small fst-italic fw-semibold
 #
-# Per-microstructure uncertainty (left) and ambiguity (right) maps for NDI (top)
-# and ODI (bottom).
+# Per-microstructure uncertainty (left) and ambiguity (right) maps for NDI and
+# ODI.
+#
+# Using a different signal model
+# ------------------------------
+#
+# FORCE can also be used with different tissue models. Matching only sees the
+# library's signal matrix, so it does not depend on how those signals were
+# made. Its speed is set by the library size and the number of gradient
+# directions, and stays the same when the model changes.
+#
+# There are two ways to substitute your own model. The direct one is to edit
+# the signal generators in ``dipy/sims/_force_core.pyx`` and rebuild; the
+# library then carries your signals and everything downstream works unchanged.
+# The other avoids a rebuild: generate the library yourself and hand it to the
+# model::
+#
+#     model = FORCEModel(gtab, simulations=my_simulations)
+#
+# In both cases the per-voxel parameters are read straight off the matched
+# entry, so the dictionary has to carry a value per simulation for each
+# parameter you want back: ``signals`` and ``labels`` at minimum, plus
+# ``num_fibers``, ``dispersion``, ``nd``, ``wm_fraction``, ``gm_fraction``,
+# ``csf_fraction``, ``fa``, ``md``, ``rd`` and ``fraction_array``. Optional
+# extras (micro-FA, the DKI metrics, ``odfs``) are picked up when present.
+# Whatever you supply is what the fit reports back.
 #
 # References
 # ----------
