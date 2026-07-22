@@ -202,15 +202,15 @@ class ParzenJointHistogram:
 
         Parameters
         ----------
-        static : array, shape (S, R, C)
+        static : array, shape (R, C) or (S, R, C)
             static image
-        moving : array, shape (S, R, C)
+        moving : array, shape (R, C) or (S, R, C)
             moving image
-        smask : array, shape (S, R, C)
+        smask : array, shape (R, C) or (S, R, C)
             mask of static object being registered (a binary array with 1's
             inside the object of interest and 0's along the background).
             If None, ones_like(static) is used as mask.
-        mmask : array, shape (S, R, C)
+        mmask : array, shape (R, C) or (S, R, C)
             mask of moving object being registered (a binary array with 1's
             inside the object of interest and 0's along the background).
             If None, ones_like(moving) is used as mask.
@@ -281,11 +281,11 @@ class ParzenJointHistogram:
         transform : instance of Transform
             the transformation with respect to whose parameters the gradient
             must be computed
-        static : array, shape (S, R, C)
+        static : array, shape (R, C) or (S, R, C)
             static image
-        moving : array, shape (S, R, C)
+        moving : array, shape (R, C) or (S, R, C)
             moving image
-        grid2world : array, shape (4, 4)
+        grid2world : array, shape (3, 3) or (4, 4)
             we assume that both images have already been sampled at a common
             grid. This transform must map voxel coordinates of this common grid
             to physical coordinates of its corresponding voxel in the moving
@@ -298,13 +298,13 @@ class ParzenJointHistogram:
             where static_affine is the transformation mapping static image's
             grid coordinates to physical space.
 
-        mgradient : array, shape (S, R, C, 3)
+        mgradient : array, shape (R, C, 2) or (S, R, C, 3)
             the gradient of the moving image
-        smask : array, shape (S, R, C), optional
+        smask : array, shape (R, C) or (S, R, C), optional
             mask of static object being registered (a binary array with 1's
             inside the object of interest and 0's along the background).
             The default is None, indicating all voxels are considered.
-        mmask : array, shape (S, R, C), optional
+        mmask : array, shape (R, C) or (S, R, C), optional
             mask of moving object being registered (a binary array with 1's
             inside the object of interest and 0's along the background).
             The default is None, indicating all voxels are considered.
@@ -383,10 +383,10 @@ class ParzenJointHistogram:
             sampled intensities from the static image at sampled_points
         mval : array, shape (m,)
             sampled intensities from the moving image at sampled_points
-        sample_points : array, shape (m, 3)
+        sample_points : array, shape (m, 2) or (m, 3)
             coordinates (in physical space) of the points the images were
             sampled at
-        mgradient : array, shape (m, 3)
+        mgradient : array, shape (m, 2) or (m, 3)
             the gradient of the moving image at the sample points
         """
         dim = sample_points.shape[1]
