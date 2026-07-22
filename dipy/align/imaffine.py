@@ -684,24 +684,31 @@ class MutualInformationMetric:
 
         Returns
         -------
-        static_values: array, shape(n,) if sparse sampling is being used,
-                       array, shape(S, R, C) or (R, C) if dense sampling
+        static_values : array, shape (n,) if sparse sampling is being used,
+                        array, shape (S, R, C) or (R, C) if dense sampling
             the intensity values corresponding to the static image used to
             update the histogram. If sparse sampling is being used, then
             it is simply a sequence of scalars, obtained by sampling the static
             image at the `n` sampling points. If dense sampling is being used,
             then the intensities are given directly by the static image,
             whose shape is (S, R, C) in the 3D case or (R, C) in the 2D case.
-        moving_values: array, shape(n,) if sparse sampling is being used,
-                       array, shape(S, R, C) or (R, C) if dense sampling
+        moving_values : array, shape (n,) if sparse sampling is being used,
+                        array, shape (S, R, C) or (R, C) if dense sampling
             the intensity values corresponding to the moving image used to
             update the histogram. If sparse sampling is being used, then
             it is simply a sequence of scalars, obtained by sampling the moving
             image at the `n` sampling points (mapped to the moving space by the
             current affine transform). If dense sampling is being used,
-            then the intensities are given by the moving imaged linearly
+            then the intensities are given by the moving image linearly
             transformed towards the static image by the current affine, which
             results in an image of the same shape as the static image.
+        static_mask_values : array, shape (S, R, C) or (R, C), or None
+            the static mask used to update the histogram for dense sampling,
+            or None if no static mask is provided or sparse sampling is used.
+        moving_mask_values : array, shape (S, R, C) or (R, C), or None
+            the moving mask transformed towards the static image for dense
+            sampling, or None if no moving mask is provided or sparse sampling
+            is used.
 
         """
         static_mask_values, moving_mask_values = None, None
@@ -831,7 +838,7 @@ class MutualInformationMetric:
 
         Returns
         -------
-        neg_mi : float
+        float
             the negative mutual information of the input images after
             transforming the moving image by the currently set transform
             with `params` parameters
@@ -855,7 +862,7 @@ class MutualInformationMetric:
 
         Returns
         -------
-        grad : array, shape (n,)
+        array, shape (n,)
             the gradient of the negative Mutual Information
 
         """
@@ -877,11 +884,11 @@ class MutualInformationMetric:
 
         Returns
         -------
-        neg_mi : float
+        float
             the negative mutual information of the input images after
             transforming the moving image by the currently set transform
             with `params` parameters
-        neg_mi_grad : array, shape (n,)
+        array, shape (n,)
             the gradient of the negative Mutual Information
 
         """
