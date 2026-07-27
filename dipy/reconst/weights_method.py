@@ -275,9 +275,9 @@ def weights_method_nlls_m_est(
 
     C = (
         factor
-        * np.median(np.abs(residuals - np.median(residuals)[..., None]), axis=-1)[
-            ..., None
-        ]
+        * np.median(
+            np.abs(residuals - np.median(residuals, axis=-1)[..., None]), axis=-1
+        )[..., None]
     )
     C[C == 0] = np.nanmedian(C)  # C could be 0, if all signals = min_signal
 

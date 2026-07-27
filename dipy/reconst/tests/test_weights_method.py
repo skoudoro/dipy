@@ -178,3 +178,53 @@ def test_weights_funcs(rng):
                     if idx < NUM_ITER - 1:  # iter okay for both wls & nlls
                         assert_equal(robust, None)
                         assert_equal(np.all(weights > 0), True)
+
+
+@set_random_number_generator()
+def test_weights_funcs_are_per_voxel(rng):
+    """Weights of one voxel must not depend on the other voxels in the batch.
+
+    The M-estimator scale ``C`` is a per-voxel quantity, so stacking extra
+    voxels into the same call must leave the first voxel's weights untouched.
+    """
+    b0 = 1000.0
+    bval, bvecs = read_bvals_bvecs(*get_fnames(name="55dir_grad"))
+    gtab = grad.gradient_table(bval, bvecs=bvecs)
+    B = bval[1]
+    D_orig = np.array([1.0, 1.0, 1.0, 0.0, 0.0, 1.0, -np.log(b0) * B]) / B
+    design_matrix = dti.design_matrix(gtab)
+    pred_sig_1d = np.exp(np.dot(design_matrix, D_orig))
+
+    # One voxel with ordinary noise, one voxel whose residuals are far larger.
+    # A batch statistic would let the second voxel corrupt the first.
+    quiet = pred_sig_1d + rng.normal(scale=1.0, size=pred_sig_1d.shape)
+    loud = pred_sig_1d + rng.normal(scale=200.0, size=pred_sig_1d.shape)
+    for sig in (quiet, loud):
+        sig[sig < MIN_POSITIVE_SIGNAL] = MIN_POSITIVE_SIGNAL
+
+    leverages_1d = np.ones_like(pred_sig_1d) * D_orig.shape[0] / pred_sig_1d.shape[0]
+
+    NUM_ITER = 4
+    for weights_func in (weights_method_wls_m_est, weights_method_nlls_m_est):
+        for mest in ("gm", "cauchy"):
+            alone, _ = weights_func(
+                quiet[None, :].copy(),
+                np.tile(pred_sig_1d, (1, 1)),
+                design_matrix,
+                np.tile(leverages_1d, (1, 1)),
+                idx=2,
+                total_idx=NUM_ITER,
+                last_robust=None,
+                m_est=mest,
+            )
+            batched, _ = weights_func(
+                np.stack([quiet, loud]),
+                np.tile(pred_sig_1d, (2, 1)),
+                design_matrix,
+                np.tile(leverages_1d, (2, 1)),
+                idx=2,
+                total_idx=NUM_ITER,
+                last_robust=None,
+                m_est=mest,
+            )
+            assert_almost_equal(batched[0], alone[0])
