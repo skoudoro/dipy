@@ -1592,7 +1592,7 @@ def radial_tensor_kurtosis(dki_params, *, min_kurtosis=-3.0 / 7, max_kurtosis=10
     return RTK.reshape(outshape)
 
 
-def kurtosis_fractional_anisotropy(dki_params, fast=True):
+def kurtosis_fractional_anisotropy(dki_params, *, fast=True):
     r"""Compute the anisotropy of the kurtosis tensor (KFA).
 
     See :footcite:p:`Glenn2015` and :footcite:p:`NetoHenriques2021a` for further

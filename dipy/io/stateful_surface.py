@@ -378,7 +378,9 @@ class StatefulSurface:
         return self._vertices.copy()
 
     def get_polydata(self):
-        return convert_to_polydata(self._vertices, self._faces, self._data_per_vertex)
+        return convert_to_polydata(
+            self._vertices, self._faces, data_per_point=self._data_per_vertex
+        )
 
     @vertices.setter
     def vertices(self, data):

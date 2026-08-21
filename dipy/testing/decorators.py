@@ -86,7 +86,8 @@ def xvfb_it(my_test):
     return test_with_xvfb if not is_windows else my_test
 
 
-def set_random_number_generator(seed_v=1234):
+# Applied as @set_random_number_generator(42), so seed_v stays positional.
+def set_random_number_generator(seed_v=1234):  # noqa: pep3102
     """Decorator to use a fixed value for the random generator seed.
 
     This will make the tests that use random functions reproducible.
@@ -116,7 +117,7 @@ def set_random_number_generator(seed_v=1234):
     return _set_random_number_generator
 
 
-def warning_for_keywords(from_version="1.10.0", until_version="2.0.0"):
+def warning_for_keywords(*, from_version="1.10.0", until_version="2.0.0"):
     """
     Decorator to warn about keyword arguments passed as positional arguments
     and handle version-based deprecation of functions.

@@ -148,7 +148,7 @@ def load_vtk_streamlines(filename, *, to_lps=True):
     return lines
 
 
-def get_polydata_triangles(polydata, dtype=None):
+def get_polydata_triangles(polydata, *, dtype=None):
     """Get triangles from a vtkPolyData object.
 
     Parameters
@@ -183,7 +183,7 @@ def get_polydata_triangles(polydata, dtype=None):
     return triangles
 
 
-def get_polydata_vertices(polydata, dtype=None):
+def get_polydata_vertices(polydata, *, dtype=None):
     """Get vertices from a vtkPolyData object.
 
     Parameters
@@ -205,7 +205,7 @@ def get_polydata_vertices(polydata, dtype=None):
     return vertices
 
 
-def convert_to_polydata(vertices, triangles, data_per_point=None):
+def convert_to_polydata(vertices, triangles, *, data_per_point=None):
     """Convert vertices and triangles to a vtkPolyData object.
 
     Parameters
@@ -251,7 +251,7 @@ def convert_to_polydata(vertices, triangles, data_per_point=None):
     return polydata
 
 
-def _numpy_to_vtk_array(array, name=None, dtype=None, deep=True):
+def _numpy_to_vtk_array(array, *, name=None, dtype=None, deep=True):
     """Convert a numpy array to a vtk array.
 
     Parameters

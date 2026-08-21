@@ -30,6 +30,21 @@ repos:
       - id: rst-inline-touching-normal
   - repo: local
     hooks:
+      - id: enforce-pep3102-defaults
+        name: Enforce keyword-only default arguments (PEP 3102)
+        entry: python tools/check_pep3102.py
+        language: python
+        types: [python]
+        exclude: |
+          (?x)^(
+            \.spin/|
+            tools/|
+            doc/|
+            dipy/workflows/|
+            (.*/)?tests/
+          )
+  - repo: local
+    hooks:
       - id: generate_requirements.py
         name: generate_requirements.py
         language: python

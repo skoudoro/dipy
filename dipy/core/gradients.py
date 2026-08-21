@@ -298,7 +298,7 @@ class GradientTable:
         # of GradientTable.
 
     @property
-    def info(self, use_logging=False):
+    def info(self, *, use_logging=False):
         show = logger.info if use_logging else print
         show(self.__str__())
 

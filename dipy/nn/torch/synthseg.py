@@ -468,7 +468,7 @@ class SynthSeg:
             60: "right ventral DC",
         }
 
-    def init_model(self, model_scale=24, n_levels=5, output_channels=33):
+    def init_model(self, *, model_scale=24, n_levels=5, output_channels=33):
         """Initialize the SynthSeg model.
 
         Parameters

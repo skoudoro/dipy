@@ -235,7 +235,8 @@ class PeakActor(Actor):
         )
 
     @calldata_type(VTK_OBJECT)
-    def __display_peaks_vtk_callback(self, caller, event, calldata=None):
+    # VTK invokes observers positionally.
+    def __display_peaks_vtk_callback(self, caller, event, calldata=None):  # noqa: pep3102
         if calldata is not None:
             calldata.SetUniformi("isRange", self.__is_range)
             calldata.SetUniform3f("highRanges", self.__high_ranges)

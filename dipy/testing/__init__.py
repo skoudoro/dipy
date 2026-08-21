@@ -13,7 +13,7 @@ from numpy.testing import assert_array_equal
 IO_DATA_PATH = Path(__file__).resolve().parent / ".." / "io" / "tests" / "data"
 
 
-def assert_operator(value1, value2, msg="", op=operator.eq):
+def assert_operator(value1, value2, *, msg="", op=operator.eq):
     """Check Boolean statement."""
     try:
         if op == operator.is_:
@@ -41,7 +41,7 @@ def assert_arrays_equal(arrays1, arrays2):
         assert_array_equal(arr1, arr2)
 
 
-def assert_percent_almost_equal(a, b, decimal=7, percent=0.99):
+def assert_percent_almost_equal(a, b, *, decimal=7, percent=0.99):
     a = np.asarray(a)
     b = np.asarray(b)
     tol = 1.5 * 10 ** (-decimal)

@@ -2,7 +2,7 @@ from collections import defaultdict
 import gc
 
 
-def get_type_refcount(pattern=None):
+def get_type_refcount(*, pattern=None):
     """
     Retrieves refcount of types for which their name matches `pattern`.
 

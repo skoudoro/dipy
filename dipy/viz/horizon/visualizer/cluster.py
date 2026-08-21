@@ -53,7 +53,8 @@ class ClustersVisualizer:
         )
 
         @calldata_type(VTK_OBJECT)
-        def uniform_selected_callback(caller, event, calldata=None):
+        # VTK invokes observers positionally.
+        def uniform_selected_callback(caller, event, calldata=None):  # noqa: pep3102
             program = calldata
             if program is not None:
                 program.SetUniformf("selected", dict_element["selected"])

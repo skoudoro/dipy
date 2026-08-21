@@ -43,7 +43,7 @@ class CustomHandler(logging.Handler):
         super().close()
 
 
-def get_logger(name="dipy", filename=None, force=False):
+def get_logger(*, name="dipy", filename=None, force=False):
     """Return a logger instance configured for DIPY.
 
     Parameters
@@ -86,6 +86,7 @@ def get_logger(name="dipy", filename=None, force=False):
 
 
 def configure_logger(
+    *,
     level=logging.INFO,
     fmt="[%(asctime)s][%(name)s] %(levelname)s: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",

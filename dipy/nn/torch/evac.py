@@ -470,7 +470,7 @@ class EVACPlus:
         self.model = self.model.to(self.device)
         self.fetch_default_weights()
 
-    def init_model(self, model_scale=16):
+    def init_model(self, *, model_scale=16):
         """Initialize the EVAC+ model.
 
         Parameters
